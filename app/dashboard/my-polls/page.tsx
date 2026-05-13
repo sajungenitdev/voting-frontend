@@ -29,11 +29,13 @@ export default function MyPollsPage() {
     dispatch(fetchPolls({ limit: 100 }));
   }, [dispatch, isAuthenticated, router]);
 
+  // FIXED: Using useMemo instead of useState
   const createdPolls: Poll[] = useMemo(() => {
     if (!polls?.length || !user?._id) return [];
     return polls.filter((poll: Poll) => poll.createdBy?._id === user._id);
   }, [polls, user]);
 
+  // FIXED: Using useMemo instead of useState
   const votedPolls: Poll[] = useMemo(() => {
     if (!polls?.length) return [];
     return polls.filter((poll: Poll) => poll.userVoted === true);
@@ -60,7 +62,6 @@ export default function MyPollsPage() {
   return (
     <div className="min-h-screen pt-20 bg-black">
       <div className="px-4 mx-auto max-w-7xl">
-        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-white">My Polls</h1>
@@ -77,7 +78,6 @@ export default function MyPollsPage() {
           </button>
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-2 mb-6 border-b border-gray-800">
           <button
             onClick={() => setActiveTab("created")}
@@ -101,7 +101,6 @@ export default function MyPollsPage() {
           </button>
         </div>
 
-        {/* Created Polls */}
         {activeTab === "created" && (
           <div>
             {createdPolls.length === 0 ? (
@@ -162,7 +161,6 @@ export default function MyPollsPage() {
           </div>
         )}
 
-        {/* Voted Polls */}
         {activeTab === "voted" && (
           <div>
             {votedPolls.length === 0 ? (
