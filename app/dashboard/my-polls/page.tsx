@@ -1,7 +1,7 @@
 // app/dashboard/my-polls/page.tsx
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { fetchPolls } from "@/store/slices/pollSlice";
@@ -15,29 +15,52 @@ import {
   TrophyIcon,
 } from "@heroicons/react/24/solid";
 
-import type { Poll } from "@/store/slices/pollSlice";
+// Define the type locally to match what comes from Redux
+interface Candidate {
+  _id: string;
+  name: string;
+  description?: string;
+  voteCount: number;
+}
+
+interface Poll {
+  _id: string;
+  title: string;
+  description: string;
+  category: string;
+  candidates: Candidate[];
+  endDate: string;
+  isPublished: boolean;
+  totalVotes: number;
+  userVoted?: boolean;
+  userVoteCandidateId?: string | null;
+  createdBy?: {
+    _id: string;
+    name: string;
+    email: string;
+  };
+}
 
 export default function MyPollsPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const { polls, isLoading } = useAppSelector((state) => state.polls);
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
-  const [activeTab, setActiveTab] = useState<"created" | "voted">("created");
 
-  // Use useMemo instead of useState + useEffect for derived data
+  // Use useMemo instead of useState for derived data
   const createdPolls = useMemo(() => {
-    if (polls.length > 0 && user) {
-      return polls.filter((p) => p.createdBy?._id === user._id);
-    }
-    return [];
+    if (!polls.length || !user) return [];
+    return polls.filter((poll: Poll) => poll.createdBy?._id === user._id);
   }, [polls, user]);
 
   const votedPolls = useMemo(() => {
-    if (polls.length > 0 && user) {
-      return polls.filter((p) => p.userVoted === true);
-    }
-    return [];
-  }, [polls, user]);
+    if (!polls.length) return [];
+    return polls.filter((poll: Poll) => poll.userVoted === true);
+  }, [polls]);
+
+  const [activeTab, setActiveTab] = useMemo(() => {
+    return ["created", "voted"] as const;
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) {
