@@ -1,10 +1,9 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { useAppSelector } from '@/store/hooks';
-import { castVote, fetchPolls } from '@/store/slices/pollSlice';
-import { CheckCircleIcon } from '@heroicons/react/24/solid';
+import { useState } from "react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks"; // ✅ Change this
+import { castVote, fetchPolls } from "@/store/slices/pollSlice";
+import { CheckCircleIcon } from "@heroicons/react/24/solid";
 
 interface VoteButtonProps {
   pollId: string;
@@ -16,16 +15,16 @@ interface VoteButtonProps {
   onAuthRequired?: () => void;
 }
 
-export default function VoteButton({ 
-  pollId, 
-  candidateId, 
-  candidateName, 
-  disabled, 
+export default function VoteButton({
+  pollId,
+  candidateId,
+  candidateName,
+  disabled,
   hasVoted = false,
-  onVoteSuccess, 
-  onAuthRequired 
+  onVoteSuccess,
+  onAuthRequired,
 }: VoteButtonProps) {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch(); // ✅ Use typed dispatch
   const { isAuthenticated } = useAppSelector((state) => state.auth);
   const [isVoting, setIsVoting] = useState(false);
   const [voted, setVoted] = useState(hasVoted);
@@ -38,23 +37,27 @@ export default function VoteButton({
 
     // Prevent duplicate votes
     if (voted || hasVoted) {
-      console.log('Already voted - preventing duplicate');
+      console.log("Already voted - preventing duplicate");
       return;
     }
-    
+
     setIsVoting(true);
     try {
-      await dispatch(castVote({ pollId, candidateId })).unwrap();
+      const result = await dispatch(castVote({ pollId, candidateId })).unwrap();
+      console.log("Vote successful:", result);
       setVoted(true);
-      
+
       // Refresh polls to get updated data
       dispatch(fetchPolls({ limit: 50 }));
-      
+
       onVoteSuccess?.();
     } catch (error: any) {
-      console.error('Vote failed:', error);
-      // If error is 400 (already voted), mark as voted
-      if (error.response?.status === 400) {
+      console.error("Vote failed:", error);
+      // If error message indicates already voted, mark as voted
+      if (
+        error?.message?.includes("already voted") ||
+        error?.type === "ALREADY_VOTED"
+      ) {
         setVoted(true);
         onVoteSuccess?.();
       }

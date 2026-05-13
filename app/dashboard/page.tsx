@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
-import { fetchPolls } from "@/store/slices/pollSlice";
+import { fetchPolls, Poll } from "@/store/slices/pollSlice";
 import PollCard from "@/components/polls/PollCard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import {
@@ -39,7 +39,6 @@ const DashboardSidebar = () => {
   const pathname = usePathname();
   const { user } = useAppSelector((state) => state.auth);
 
-  // In your dashboard sidebar, add the My Votes link
   const menuItems = [
     {
       name: "Overview",
@@ -82,7 +81,6 @@ const DashboardSidebar = () => {
   return (
     <aside className="flex-shrink-0 w-64">
       <div className="sticky top-20">
-        {/* User Profile */}
         <div className="p-4 mb-6 text-center border border-gray-800 rounded-xl bg-gradient-to-br from-gray-900 to-black">
           <div className="w-20 h-20 mx-auto mb-3 overflow-hidden rounded-full bg-gradient-to-r from-red-500 to-red-600 p-0.5">
             <div className="flex items-center justify-center w-full h-full bg-gray-900 rounded-full">
@@ -100,7 +98,6 @@ const DashboardSidebar = () => {
           </div>
         </div>
 
-        {/* Navigation Menu */}
         <nav className="space-y-1">
           {menuItems.map((item) => (
             <Link
@@ -120,7 +117,6 @@ const DashboardSidebar = () => {
           ))}
         </nav>
 
-        {/* Logout Button */}
         <div className="pt-6 mt-6 border-t border-gray-800">
           <button
             onClick={handleLogout}
@@ -148,8 +144,10 @@ export default function DashboardPage() {
     activePolls: 0,
     createdPolls: 0,
   });
-  const [myPolls, setMyPolls] = useState([]);
-  const [recentVotes, setRecentVotes] = useState([]);
+
+  // ✅ FIXED: Added proper type annotations
+  const [myPolls, setMyPolls] = useState<Poll[]>([]);
+  const [recentVotes, setRecentVotes] = useState<Poll[]>([]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -161,16 +159,19 @@ export default function DashboardPage() {
   }, [dispatch, isAuthenticated, router]);
 
   useEffect(() => {
-    if (polls.length > 0) {
+    if (polls.length > 0 && user) {
       // Calculate statistics
       const activePolls = polls.filter(
-        (p) => p.isPublished && new Date(p.endDate) > new Date(),
+        (p: Poll) => p.isPublished && new Date(p.endDate) > new Date(),
       ).length;
 
-      const totalVotes = polls.reduce((sum, p) => sum + (p.totalVotes || 0), 0);
+      const totalVotes = polls.reduce(
+        (sum, p: Poll) => sum + (p.totalVotes || 0),
+        0,
+      );
 
       const createdPolls = polls.filter(
-        (p) => p.createdBy?._id === user?._id,
+        (p: Poll) => p.createdBy?._id === user?._id,
       ).length;
 
       setStats({
@@ -182,7 +183,7 @@ export default function DashboardPage() {
 
       // Get user's created polls
       setMyPolls(
-        polls.filter((p) => p.createdBy?._id === user?._id).slice(0, 5),
+        polls.filter((p: Poll) => p.createdBy?._id === user?._id).slice(0, 5),
       );
     }
   }, [polls, user]);
@@ -203,12 +204,9 @@ export default function DashboardPage() {
     <div className="min-h-screen pt-20 bg-black">
       <div className="px-4 mx-auto max-w-7xl">
         <div className="flex gap-8">
-          {/* Sidebar */}
           <DashboardSidebar />
 
-          {/* Main Content */}
           <main className="flex-1 min-w-0">
-            {/* Header */}
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-white">
                 Dashboard Overview
@@ -218,7 +216,6 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            {/* Stats Grid */}
             <div className="grid gap-6 mb-8 md:grid-cols-2 lg:grid-cols-4">
               <div className="p-6 transition-all border border-gray-800 rounded-xl bg-gradient-to-br from-gray-900 to-black hover:border-red-500/30">
                 <div className="flex items-center justify-between mb-4">
@@ -269,7 +266,6 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Recent Polls Section */}
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-white">
@@ -298,7 +294,7 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="grid gap-4">
-                  {myPolls.map((poll: any) => (
+                  {myPolls.map((poll: Poll) => (
                     <div
                       key={poll._id}
                       className="p-4 transition-all border border-gray-800 cursor-pointer rounded-xl bg-gradient-to-r from-gray-900 to-black hover:border-red-500/30"
@@ -355,7 +351,6 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* Quick Stats Cards */}
             <div className="grid gap-6 md:grid-cols-2">
               <div className="p-6 transition-all border border-gray-800 rounded-xl bg-gradient-to-br from-gray-900 to-black hover:border-red-500/30">
                 <div className="flex items-center gap-3 mb-4">

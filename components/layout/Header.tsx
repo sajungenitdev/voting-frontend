@@ -139,8 +139,7 @@ export default function Header() {
             <nav className="items-center hidden gap-1 p-1 border rounded-full md:flex bg-white/5 backdrop-blur-sm border-white/10">
               {navLinks.map((item) => {
                 if (item.auth && !isAuthenticated) return null;
-                if (item.b2b && !isB2BUser && !user?.role === "admin")
-                  return null;
+               if (item.b2b && !isB2BUser && user?.role !== "admin") return null;
                 const isActive = pathname === item.href;
                 return (
                   <Link

@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAppSelector } from "@/store/hooks";
+import { useAppSelector, useAppDispatch } from "@/store/hooks";
+import { restoreSession } from "@/store/slices/authSlice";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
 import {
@@ -15,7 +16,6 @@ import {
   ArrowPathIcon,
   XMarkIcon,
 } from "@heroicons/react/24/solid";
-import { setSession } from "@/store/slices/authSlice";
 
 interface Category {
   _id: string;
@@ -28,6 +28,7 @@ interface Category {
 
 export default function B2BRequestPage() {
   const router = useRouter();
+  const dispatch = useAppDispatch(); // ✅ ADD THIS - import useAppDispatch
   const { isAuthenticated, user } = useAppSelector((state) => state.auth);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -134,7 +135,6 @@ export default function B2BRequestPage() {
       setIsLoading(false);
     }
   };
-  // app/b2b/request/page.tsx - Update handleVerifyOTP
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,12 +153,12 @@ export default function B2BRequestPage() {
       });
 
       if (response.data.success) {
-        const { accessToken, user } = response.data.data;
+        const { accessToken, user: userData } = response.data.data;
 
-        if (accessToken && user) {
+        if (accessToken && userData) {
           // Store in localStorage
           localStorage.setItem("accessToken", accessToken);
-          localStorage.setItem("user", JSON.stringify(user));
+          localStorage.setItem("user", JSON.stringify(userData));
 
           // ✅ Force restore session in Redux
           dispatch(restoreSession());
@@ -167,7 +167,7 @@ export default function B2BRequestPage() {
 
           // ✅ Redirect to dashboard
           setTimeout(() => {
-            window.location.href = "/b2b/dashboard";
+            router.push("/b2b/dashboard");
           }, 1000);
         }
       }

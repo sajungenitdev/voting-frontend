@@ -284,8 +284,8 @@ const authSlice = createSlice({
       })
       .addCase(register.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.error.message;
-        toast.error(action.error.message);
+        state.error = action.error.message || "Registration failed";
+        toast.error(action.error.message || "Registration failed");
       })
 
       // Login
@@ -302,8 +302,8 @@ const authSlice = createSlice({
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.error.message;
-        toast.error(action.error.message);
+        state.error = action.error.message || "Login failed";
+        toast.error(action.error.message || "Login failed");
       })
 
       // B2B Login
@@ -320,8 +320,8 @@ const authSlice = createSlice({
       })
       .addCase(b2bLogin.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.error.message;
-        toast.error(action.error.message);
+        state.error = action.error.message || "B2B Login failed";
+        toast.error(action.error.message || "B2B Login failed");
       })
 
       // Verify OTP
@@ -338,8 +338,8 @@ const authSlice = createSlice({
       })
       .addCase(verifyOTP.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.error.message;
-        toast.error(action.error.message);
+        state.error = action.error.message || "OTP verification failed";
+        toast.error(action.error.message || "OTP verification failed");
       })
 
       // Resend OTP
@@ -347,22 +347,22 @@ const authSlice = createSlice({
         toast.success("New OTP sent to your email");
       })
       .addCase(resendOTP.rejected, (state, action) => {
-        toast.error(action.error.message);
+        toast.error(action.error.message || "Failed to resend OTP");
       })
 
       // Forgot Password
       .addCase(forgotPassword.rejected, (state, action) => {
-        toast.error(action.error.message);
+        toast.error(action.error.message || "Failed to send reset email");
       })
 
       // Reset Password
       .addCase(resetPassword.rejected, (state, action) => {
-        toast.error(action.error.message);
+        toast.error(action.error.message || "Failed to reset password");
       })
 
       // Change Password
       .addCase(changePassword.rejected, (state, action) => {
-        toast.error(action.error.message);
+        toast.error(action.error.message || "Failed to change password");
       })
 
       // Get Current User

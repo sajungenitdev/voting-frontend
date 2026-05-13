@@ -1,87 +1,91 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
-import api from '@/lib/api'
-import toast from 'react-hot-toast'
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import api from "@/lib/api";
+import toast from "react-hot-toast";
 
 interface Vote {
-  _id: string
+  _id: string;
   poll: {
-    _id: string
-    title: string
-  }
+    _id: string;
+    title: string;
+  };
   candidate: {
-    _id: string
-    name: string
-  }
-  voteReceipt: string
-  createdAt: string
+    _id: string;
+    name: string;
+  };
+  voteReceipt: string;
+  createdAt: string;
 }
 
 interface VoteState {
-  myVotes: Vote[]
-  isLoading: boolean
-  error: string | null
+  myVotes: Vote[];
+  isLoading: boolean;
+  error: string | null;
 }
 
 const initialState: VoteState = {
   myVotes: [],
   isLoading: false,
   error: null,
-}
+};
 
 // Get user's vote history
 export const fetchMyVotes = createAsyncThunk(
-  'votes/fetchMyVotes',
+  "votes/fetchMyVotes",
   async (params: { page?: number; limit?: number } = {}) => {
-    const response = await api.get('/votes/my-votes', { params })
-    return response.data.data.votes
-  }
-)
+    const response = await api.get("/votes/my-votes", { params });
+    return response.data.data.votes;
+  },
+);
 
 // Check if user has voted in a poll
 export const checkHasVoted = createAsyncThunk(
-  'votes/checkHasVoted',
+  "votes/checkHasVoted",
   async (pollId: string) => {
-    const response = await api.get(`/votes/check/${pollId}`)
-    return { pollId, hasVoted: response.data.data.hasVoted }
-  }
-)
+    const response = await api.get(`/votes/check/${pollId}`);
+    return { pollId, hasVoted: response.data.data.hasVoted };
+  },
+);
 
 // Get vote receipt
 export const getVoteReceipt = createAsyncThunk(
-  'votes/getReceipt',
+  "votes/getReceipt",
   async (voteId: string) => {
-    const response = await api.get(`/votes/receipt/${voteId}`)
-    return response.data.data.receipt
-  }
-)
+    const response = await api.get(`/votes/receipt/${voteId}`);
+    return response.data.data.receipt;
+  },
+);
 
 const voteSlice = createSlice({
-  name: 'votes',
+  name: "votes",
   initialState,
   reducers: {
     clearError: (state) => {
-      state.error = null
+      state.error = null;
     },
     clearMyVotes: (state) => {
-      state.myVotes = []
+      state.myVotes = [];
     },
   },
   extraReducers: (builder) => {
     builder
       .addCase(fetchMyVotes.pending, (state) => {
-        state.isLoading = true
-        state.error = null
+        state.isLoading = true;
+        state.error = null;
       })
       .addCase(fetchMyVotes.fulfilled, (state, action) => {
-        state.isLoading = false
-        state.myVotes = action.payload
+        state.isLoading = false;
+        state.myVotes = action.payload;
+        state.error = null;
       })
       .addCase(fetchMyVotes.rejected, (state, action) => {
-        state.isLoading = false
-        state.error = action.error.message
-      })
+        state.isLoading = false;
+        // ✅ Fixed: Add fallback error message
+        state.error = action.error.message || "Failed to fetch your votes";
+        // Optional: Show toast error
+        toast.error(action.error.message || "Failed to fetch your votes");
+      });
   },
-})
+});
 
-export const { clearError, clearMyVotes } = voteSlice.actions
-export default voteSlice.reducer
+export const { clearError, clearMyVotes } = voteSlice.actions;
+export default voteSlice.reducer;

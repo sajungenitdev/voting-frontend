@@ -187,6 +187,7 @@ const AnalyticsPopover = ({
   );
 };
 
+// components/polls/PollCard.tsx
 interface PollCardProps {
   poll: {
     _id: string;
@@ -203,9 +204,10 @@ interface PollCardProps {
     isPublished: boolean;
     totalVotes: number;
     userVoted?: boolean;
-    userVoteCandidateId?: string;
+    userVoteCandidateId?: string | null; // ✅ Allow null
   };
   onVoteSuccess?: () => void;
+  viewMode?: "grid" | "list";
 }
 
 export default function PollCard({ poll, onVoteSuccess }: PollCardProps) {

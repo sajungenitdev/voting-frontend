@@ -1,7 +1,7 @@
 // app/b2b/dashboard/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAppSelector } from "@/store/hooks";
 import api from "@/lib/api";
@@ -63,6 +63,28 @@ interface Request {
   createdAt: string;
 }
 
+interface ApiKey {
+  _id: string;
+  name: string;
+  createdAt: string;
+  expiresAt: string;
+}
+
+interface Activity {
+  id: number;
+  action: string;
+  time: string;
+  status: string;
+}
+
+interface StatsCardProps {
+  title: string;
+  value: string | number;
+  icon: React.ComponentType<{ className?: string }>;
+  color: string;
+  subtitle?: string;
+}
+
 // Sidebar Component
 const DashboardSidebar = () => {
   const router = useRouter();
@@ -112,7 +134,6 @@ const DashboardSidebar = () => {
   return (
     <aside className="flex-shrink-0 w-64">
       <div className="sticky top-20">
-        {/* B2B Badge */}
         <div className="p-4 mb-6 text-center border border-purple-500/30 rounded-xl bg-gradient-to-br from-purple-900/20 to-purple-800/20">
           <div className="flex items-center justify-center gap-2 mb-2">
             <BuildingOfficeIcon className="w-5 h-5 text-purple-400" />
@@ -126,7 +147,6 @@ const DashboardSidebar = () => {
           </div>
         </div>
 
-        {/* User Profile */}
         <div className="p-4 mb-6 text-center border border-gray-800 rounded-xl bg-gradient-to-br from-gray-900 to-black">
           <div className="w-20 h-20 mx-auto mb-3 overflow-hidden rounded-full bg-gradient-to-r from-purple-500 to-purple-600 p-0.5">
             <div className="flex items-center justify-center w-full h-full bg-gray-900 rounded-full">
@@ -147,7 +167,6 @@ const DashboardSidebar = () => {
           </div>
         </div>
 
-        {/* Navigation Menu */}
         <nav className="space-y-1">
           {menuItems.map((item) => (
             <Link
@@ -167,7 +186,6 @@ const DashboardSidebar = () => {
           ))}
         </nav>
 
-        {/* Logout Button */}
         <div className="pt-6 mt-6 border-t border-gray-800">
           <button
             onClick={handleLogout}
@@ -183,7 +201,13 @@ const DashboardSidebar = () => {
 };
 
 // Stats Card Component
-const StatsCard = ({ title, value, icon: Icon, color, subtitle }: any) => (
+const StatsCard = ({
+  title,
+  value,
+  icon: Icon,
+  color,
+  subtitle,
+}: StatsCardProps) => (
   <div className="p-6 transition-all duration-300 border border-gray-800 rounded-xl bg-gradient-to-br from-gray-900 to-black hover:border-purple-500/30">
     <div className="flex items-center justify-between mb-4">
       <div className={`p-3 rounded-lg ${color}`}>
@@ -206,8 +230,8 @@ export default function B2BDashboardPage() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [requests, setRequests] = useState<Request[]>([]);
-  const [apiKeys, setApiKeys] = useState<any[]>([]);
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
   const [stats, setStats] = useState({
     totalRequests: 0,
     approvedRequests: 0,
@@ -220,15 +244,7 @@ export default function B2BDashboardPage() {
   const [generatedApiKey, setGeneratedApiKey] = useState("");
   const [isGeneratingKey, setIsGeneratingKey] = useState(false);
 
-  useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token && !isAuthenticated) {
-      router.push("/login");
-      return;
-    }
-    fetchDashboardData();
-  }, [isAuthenticated, router]);
-
+  // ✅ DECLARE fetchDashboardData FIRST before using it in useEffect
   const fetchDashboardData = async () => {
     setIsLoading(true);
     try {
@@ -252,14 +268,14 @@ export default function B2BDashboardPage() {
         setStats({
           totalRequests: requestsList.length,
           approvedRequests: requestsList.filter(
-            (r: any) => r.status === "approved",
+            (r: Request) => r.status === "approved",
           ).length,
           pendingRequests: requestsList.filter(
-            (r: any) => r.status === "pending",
+            (r: Request) => r.status === "pending",
           ).length,
-          apiKeysCount: 0,
+          apiKeysCount: stats.apiKeysCount,
           dataAccessCount: requestsList.filter(
-            (r: any) => r.status === "approved",
+            (r: Request) => r.status === "approved",
           ).length,
         });
       }
@@ -305,6 +321,16 @@ export default function B2BDashboardPage() {
       setIsLoading(false);
     }
   };
+
+  // ✅ Now useEffect can safely call fetchDashboardData
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    if (!token && !isAuthenticated) {
+      router.push("/login");
+      return;
+    }
+    fetchDashboardData();
+  }, [isAuthenticated, router]);
 
   const handleGenerateApiKey = async () => {
     if (!newApiKeyName.trim()) {
@@ -354,19 +380,16 @@ export default function B2BDashboardPage() {
   };
 
   if (isLoading) {
-    return <LoadingSpinner message="Loading dashboard..." />;
+    return <LoadingSpinner />;
   }
 
   return (
     <div className="min-h-screen py-20 bg-black">
       <div className="container px-4 mx-auto">
         <div className="flex gap-8">
-          {/* Sidebar */}
           <DashboardSidebar />
 
-          {/* Main Content */}
           <main className="flex-1 min-w-0">
-            {/* Header */}
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-white">B2B Dashboard</h1>
               <p className="text-gray-400">
@@ -374,7 +397,6 @@ export default function B2BDashboardPage() {
               </p>
             </div>
 
-            {/* Stats Grid */}
             <div className="grid gap-6 mb-8 md:grid-cols-2 lg:grid-cols-3">
               <StatsCard
                 title="Total Requests"
@@ -421,7 +443,6 @@ export default function B2BDashboardPage() {
               />
             </div>
 
-            {/* Subscription Section */}
             <div className="mb-8">
               <h2 className="mb-4 text-xl font-semibold text-white">
                 Subscription Status
@@ -482,7 +503,6 @@ export default function B2BDashboardPage() {
               )}
             </div>
 
-            {/* Data Access Requests */}
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-white">
@@ -558,7 +578,6 @@ export default function B2BDashboardPage() {
               )}
             </div>
 
-            {/* API Keys Section */}
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-white">API Keys</h2>
@@ -602,7 +621,6 @@ export default function B2BDashboardPage() {
               )}
             </div>
 
-            {/* Recent Activity Card - Right Side */}
             <div className="p-6 border border-gray-800 rounded-2xl bg-gradient-to-br from-gray-900 to-black">
               <div className="flex items-center gap-2 mb-4">
                 <FireIcon className="w-5 h-5 text-orange-400" />
