@@ -58,7 +58,12 @@ interface PollState {
   polls: Poll[];
   isLoading: boolean;
   error: string | null;
-  voteError: string | null; // Separate error for vote operations
+  voteError: string | null;
+}
+
+interface VoteError {
+  type: "ALREADY_VOTED" | "ERROR";
+  message: string;
 }
 
 // ============ INITIAL STATE ============
@@ -87,7 +92,8 @@ export const fetchPolls = createAsyncThunk<
 
 export const castVote = createAsyncThunk<
   { pollId: string; candidateId: string; voteData: any },
-  { pollId: string; candidateId: string }
+  { pollId: string; candidateId: string },
+  { rejectValue: VoteError }
 >("polls/castVote", async ({ pollId, candidateId }, { rejectWithValue }) => {
   try {
     const response = await api.post("/votes", {
@@ -97,7 +103,6 @@ export const castVote = createAsyncThunk<
     return { pollId, candidateId, voteData: response.data };
   } catch (error: any) {
     if (error.response?.status === 400) {
-      // Return a specific error code for already voted
       return rejectWithValue({
         type: "ALREADY_VOTED",
         message: "You have already voted in this poll",
@@ -108,7 +113,6 @@ export const castVote = createAsyncThunk<
     return rejectWithValue({ type: "ERROR", message });
   }
 });
-
 
 // ============ SLICE ============
 const pollSlice = createSlice({
@@ -137,7 +141,6 @@ const pollSlice = createSlice({
         poll.totalVotes += 1;
       }
     },
-    // ✅ ADD THIS - updatePollLocally for immediate UI updates
     updatePollLocally: (
       state,
       action: PayloadAction<{ pollId: string; candidateId: string }>,
@@ -175,12 +178,8 @@ const pollSlice = createSlice({
       })
       .addCase(fetchPolls.rejected, (state, action) => {
         state.isLoading = false;
-        // Don't set error if it's just a vote-related issue
-        if (action.payload !== "You have already voted in this poll") {
-          state.error = action.payload as string;
-        }
+        state.error = (action.payload as string) || "Failed to fetch polls";
       })
-
       // Cast Vote
       .addCase(castVote.pending, (state) => {
         state.voteError = null;
@@ -200,9 +199,8 @@ const pollSlice = createSlice({
         state.voteError = null;
       })
       .addCase(castVote.rejected, (state, action) => {
-        const error = action.payload as { type: string; message: string };
+        const error = action.payload as VoteError;
         if (error?.type === "ALREADY_VOTED") {
-          // Don't set error, just update local state
           state.voteError = null;
         } else {
           state.voteError = error?.message || "Failed to cast vote";
@@ -211,12 +209,13 @@ const pollSlice = createSlice({
   },
 });
 
-// ✅ EXPORT the new action
+// ============ EXPORTS ============
 export const {
   clearError,
   clearVoteError,
   updatePollVote,
-  updatePollLocally, // Added this export
+  updatePollLocally,
   resetPolls,
 } = pollSlice.actions;
+
 export default pollSlice.reducer;

@@ -2,12 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { fetchPolls, Poll } from "@/store/slices/pollSlice";
-
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
-
 import {
   ChartBarIcon,
   UsersIcon,
@@ -20,12 +17,8 @@ import {
 export default function MyPollsPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-
-  // Use store types directly
   const { polls, isLoading } = useAppSelector((state) => state.polls);
-
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
-
   const [activeTab, setActiveTab] = useState<"created" | "voted">("created");
 
   useEffect(() => {
@@ -33,46 +26,27 @@ export default function MyPollsPage() {
       router.push("/login");
       return;
     }
-
     dispatch(fetchPolls({ limit: 100 }));
   }, [dispatch, isAuthenticated, router]);
 
-  // Derived state using useMemo
-  const createdPolls = useMemo(() => {
-    if (!Array.isArray(polls) || !user?._id) {
-      return [];
-    }
-
+  const createdPolls: Poll[] = useMemo(() => {
+    if (!polls?.length || !user?._id) return [];
     return polls.filter((poll: Poll) => poll.createdBy?._id === user._id);
   }, [polls, user]);
 
-  const votedPolls = useMemo(() => {
-    if (!Array.isArray(polls)) {
-      return [];
-    }
-
+  const votedPolls: Poll[] = useMemo(() => {
+    if (!polls?.length) return [];
     return polls.filter((poll: Poll) => poll.userVoted === true);
   }, [polls]);
 
   const getStatusBadge = (poll: Poll) => {
     if (!poll.isPublished) {
-      return {
-        text: "Draft",
-        color: "bg-yellow-500/20 text-yellow-400",
-      };
+      return { text: "Draft", color: "bg-yellow-500/20 text-yellow-400" };
     }
-
     if (new Date(poll.endDate) < new Date()) {
-      return {
-        text: "Ended",
-        color: "bg-gray-500/20 text-gray-400",
-      };
+      return { text: "Ended", color: "bg-gray-500/20 text-gray-400" };
     }
-
-    return {
-      text: "Active",
-      color: "bg-green-500/20 text-green-400",
-    };
+    return { text: "Active", color: "bg-green-500/20 text-green-400" };
   };
 
   if (isLoading) {
@@ -90,12 +64,10 @@ export default function MyPollsPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-white">My Polls</h1>
-
             <p className="text-gray-400">
               Manage your created polls and track your votes
             </p>
           </div>
-
           <button
             onClick={() => router.push("/create-poll")}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white transition-all rounded-lg bg-gradient-to-r from-red-500 to-red-600 hover:shadow-lg"
@@ -117,7 +89,6 @@ export default function MyPollsPage() {
           >
             Created ({createdPolls.length})
           </button>
-
           <button
             onClick={() => setActiveTab("voted")}
             className={`px-4 py-2 text-sm font-medium transition-all ${
@@ -132,15 +103,13 @@ export default function MyPollsPage() {
 
         {/* Created Polls */}
         {activeTab === "created" && (
-          <>
+          <div>
             {createdPolls.length === 0 ? (
               <div className="py-12 text-center border border-gray-800 rounded-xl bg-gray-900/30">
                 <div className="mb-4 text-6xl">📝</div>
-
                 <p className="text-gray-400">
                   You haven't created any polls yet
                 </p>
-
                 <button
                   onClick={() => router.push("/create-poll")}
                   className="px-4 py-2 mt-4 text-sm font-medium text-white transition-all bg-red-500 rounded-lg hover:bg-red-600"
@@ -150,9 +119,8 @@ export default function MyPollsPage() {
               </div>
             ) : (
               <div className="grid gap-4">
-                {createdPolls.map((poll: Poll) => {
+                {createdPolls.map((poll) => {
                   const status = getStatusBadge(poll);
-
                   return (
                     <div
                       key={poll._id}
@@ -164,22 +132,20 @@ export default function MyPollsPage() {
                           <h3 className="font-semibold text-white">
                             {poll.title}
                           </h3>
-
                           <p className="text-sm text-gray-400">
                             {poll.description}
                           </p>
-
                           <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                             <span className="flex items-center gap-1">
                               <UsersIcon className="w-3 h-3" />
-                              {poll.candidates?.length || 0} candidates
+                              <span>
+                                {poll.candidates?.length || 0} candidates
+                              </span>
                             </span>
-
                             <span className="flex items-center gap-1">
                               <ChartBarIcon className="w-3 h-3" />
-                              {poll.totalVotes || 0} votes
+                              <span>{poll.totalVotes || 0} votes</span>
                             </span>
-
                             <span
                               className={`px-2 py-0.5 rounded-full text-xs ${status.color}`}
                             >
@@ -193,20 +159,18 @@ export default function MyPollsPage() {
                 })}
               </div>
             )}
-          </>
+          </div>
         )}
 
         {/* Voted Polls */}
         {activeTab === "voted" && (
-          <>
+          <div>
             {votedPolls.length === 0 ? (
               <div className="py-12 text-center border border-gray-800 rounded-xl bg-gray-900/30">
                 <div className="mb-4 text-6xl">🗳️</div>
-
                 <p className="text-gray-400">
                   You haven't voted in any polls yet
                 </p>
-
                 <button
                   onClick={() => router.push("/")}
                   className="px-4 py-2 mt-4 text-sm font-medium text-white transition-all bg-red-500 rounded-lg hover:bg-red-600"
@@ -216,13 +180,11 @@ export default function MyPollsPage() {
               </div>
             ) : (
               <div className="grid gap-4">
-                {votedPolls.map((poll: Poll) => {
+                {votedPolls.map((poll) => {
                   const status = getStatusBadge(poll);
-
                   const votedCandidate = poll.candidates?.find(
-                    (candidate) => candidate._id === poll.userVoteCandidateId,
+                    (c) => c._id === poll.userVoteCandidateId,
                   );
-
                   return (
                     <div
                       key={poll._id}
@@ -233,46 +195,40 @@ export default function MyPollsPage() {
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <CheckCircleIcon className="w-4 h-4 text-green-500" />
-
                             <span className="text-xs text-green-500">
                               You voted
                             </span>
-
                             <span
                               className={`px-2 py-0.5 rounded-full text-xs ${status.color}`}
                             >
                               {status.text}
                             </span>
                           </div>
-
                           <h3 className="font-semibold text-white">
                             {poll.title}
                           </h3>
-
                           <p className="text-sm text-gray-400">
                             {poll.description}
                           </p>
-
                           <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                             <span className="flex items-center gap-1">
                               <UsersIcon className="w-3 h-3" />
-                              {poll.candidates?.length || 0} candidates
+                              <span>
+                                {poll.candidates?.length || 0} candidates
+                              </span>
                             </span>
-
                             <span className="flex items-center gap-1">
                               <ChartBarIcon className="w-3 h-3" />
-                              {poll.totalVotes || 0} votes
+                              <span>{poll.totalVotes || 0} votes</span>
                             </span>
-
                             {votedCandidate && (
                               <span className="flex items-center gap-1 text-green-500">
                                 <CheckCircleIcon className="w-3 h-3" />
-                                Voted for: {votedCandidate.name}
+                                <span>Voted for: {votedCandidate.name}</span>
                               </span>
                             )}
                           </div>
                         </div>
-
                         <div className="ml-4">
                           {status.text === "Active" ? (
                             <div className="flex flex-col items-end gap-1">
@@ -280,7 +236,6 @@ export default function MyPollsPage() {
                                 <ClockIcon className="w-3 h-3" />
                                 <span>Active</span>
                               </div>
-
                               <div className="text-xs text-gray-500">
                                 {new Date(poll.endDate).toLocaleDateString()}
                               </div>
@@ -295,7 +250,7 @@ export default function MyPollsPage() {
                 })}
               </div>
             )}
-          </>
+          </div>
         )}
       </div>
     </div>
