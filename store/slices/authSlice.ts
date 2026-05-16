@@ -1,5 +1,5 @@
 // store/slices/authSlice.ts
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
 
@@ -22,6 +22,7 @@ interface AuthState {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  isLoggingIn: boolean;
   error: string | null;
 }
 
@@ -30,10 +31,11 @@ const initialState: AuthState = {
   token: null,
   isAuthenticated: false,
   isLoading: false,
+  isLoggingIn: false,
   error: null,
 };
 
-// Helper function to normalize user data (handles both regular and B2B users)
+// Helper function to normalize user data
 const normalizeUser = (userData: any): User => {
   return {
     _id: userData._id || userData.id,
@@ -50,7 +52,7 @@ const normalizeUser = (userData: any): User => {
   };
 };
 
-// Register user
+// Register user - FIXED to return proper data structure
 export const register = createAsyncThunk(
   "auth/register",
   async ({
@@ -67,18 +69,27 @@ export const register = createAsyncThunk(
       email,
       password,
     });
+
     if (response.data.success) {
-      return { email, message: response.data.message };
+      // Return consistent structure that modal expects
+      return {
+        success: true,
+        message:
+          response.data.message ||
+          "Registration successful. Please verify your email.",
+        email: email, // Store email for OTP
+      };
     }
-    throw new Error(response.data.message);
+    throw new Error(response.data.message || "Registration failed");
   },
 );
 
-// Login user
+// Login user - FIXED
 export const login = createAsyncThunk(
   "auth/login",
   async ({ email, password }: { email: string; password: string }) => {
     const response = await api.post("/auth/login", { email, password });
+
     if (response.data.success) {
       const { accessToken, user } = response.data.data;
       const normalizedUser = normalizeUser(user);
@@ -86,15 +97,16 @@ export const login = createAsyncThunk(
       localStorage.setItem("user", JSON.stringify(normalizedUser));
       return { user: normalizedUser, token: accessToken };
     }
-    throw new Error(response.data.message);
+    throw new Error(response.data.message || "Login failed");
   },
 );
 
-// Verify OTP
+// Verify OTP - FIXED to better handle response
 export const verifyOTP = createAsyncThunk(
   "auth/verifyOTP",
   async ({ email, otp }: { email: string; otp: string }) => {
     const response = await api.post("/auth/verify-otp", { email, otp });
+
     if (response.data.success) {
       const { accessToken, user } = response.data.data;
       const normalizedUser = normalizeUser(user);
@@ -102,19 +114,20 @@ export const verifyOTP = createAsyncThunk(
       localStorage.setItem("user", JSON.stringify(normalizedUser));
       return { user: normalizedUser, token: accessToken };
     }
-    throw new Error(response.data.message);
+    throw new Error(response.data.message || "OTP verification failed");
   },
 );
 
-// Resend OTP
+// Resend OTP - FIXED
 export const resendOTP = createAsyncThunk(
   "auth/resendOTP",
   async ({ email }: { email: string }) => {
     const response = await api.post("/auth/resend-otp", { email });
+
     if (response.data.success) {
-      return response.data;
+      return { success: true, message: response.data.message };
     }
-    throw new Error(response.data.message);
+    throw new Error(response.data.message || "Failed to resend OTP");
   },
 );
 
@@ -127,7 +140,7 @@ export const forgotPassword = createAsyncThunk(
       toast.success("Password reset email sent. Please check your inbox.");
       return response.data;
     }
-    throw new Error(response.data.message);
+    throw new Error(response.data.message || "Failed to send reset email");
   },
 );
 
@@ -145,7 +158,7 @@ export const resetPassword = createAsyncThunk(
       );
       return response.data;
     }
-    throw new Error(response.data.message);
+    throw new Error(response.data.message || "Failed to reset password");
   },
 );
 
@@ -167,7 +180,7 @@ export const changePassword = createAsyncThunk(
       toast.success("Password changed successfully");
       return response.data;
     }
-    throw new Error(response.data.message);
+    throw new Error(response.data.message || "Failed to change password");
   },
 );
 
@@ -185,7 +198,7 @@ export const getCurrentUser = createAsyncThunk(
       localStorage.setItem("user", JSON.stringify(normalizedUser));
       return normalizedUser;
     }
-    throw new Error(response.data.message);
+    throw new Error(response.data.message || "Failed to get user");
   },
 );
 
@@ -200,7 +213,7 @@ export const logout = createAsyncThunk("auth/logout", async () => {
   localStorage.removeItem("user");
 });
 
-// B2B Login (for B2B users)
+// B2B Login
 export const b2bLogin = createAsyncThunk(
   "auth/b2bLogin",
   async ({ email, password }: { email: string; password: string }) => {
@@ -212,7 +225,7 @@ export const b2bLogin = createAsyncThunk(
       localStorage.setItem("user", JSON.stringify(normalizedUser));
       return { user: normalizedUser, token: accessToken };
     }
-    throw new Error(response.data.message);
+    throw new Error(response.data.message || "B2B login failed");
   },
 );
 
@@ -222,6 +235,12 @@ const authSlice = createSlice({
   reducers: {
     clearError: (state) => {
       state.error = null;
+    },
+    // ADD THIS MISSING ACTION
+    clearAuthError: (state) => {
+      state.error = null;
+      state.isLoading = false;
+      state.isLoggingIn = false;
     },
     updateUser: (state, action) => {
       state.user = { ...state.user, ...action.payload };
@@ -246,15 +265,18 @@ const authSlice = createSlice({
           state.token = token;
           state.user = normalizedUser;
           state.isAuthenticated = true;
+          state.isLoggingIn = false;
           console.log("Session restored successfully:", normalizedUser);
         } catch (e) {
           console.error("Failed to restore session:", e);
           state.user = null;
           state.token = null;
           state.isAuthenticated = false;
+          state.isLoggingIn = false;
         }
       } else {
         console.log("No session found in localStorage");
+        state.isLoggingIn = false;
       }
     },
     // Force set session (for B2B OTP flow)
@@ -264,105 +286,153 @@ const authSlice = createSlice({
       state.token = token;
       state.user = normalizedUser;
       state.isAuthenticated = true;
+      state.isLoggingIn = false;
       localStorage.setItem("accessToken", token);
       localStorage.setItem("user", JSON.stringify(normalizedUser));
       console.log("Session set manually:", normalizedUser);
     },
+    // Set logging in state
+    setLoggingIn: (state, action: PayloadAction<boolean>) => {
+      state.isLoggingIn = action.payload;
+    },
+    // Reset auth state
+    resetAuthState: (state) => {
+      state.user = null;
+      state.token = null;
+      state.isAuthenticated = false;
+      state.isLoading = false;
+      state.isLoggingIn = false;
+      state.error = null;
+    },
   },
   extraReducers: (builder) => {
     builder
-      // Register
+      // Register - FIXED to match modal expectations
       .addCase(register.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(register.fulfilled, (state) => {
+      .addCase(register.fulfilled, (state, action) => {
         state.isLoading = false;
-        toast.success(
-          "Registration successful! Please check your email for OTP.",
-        );
+        // Don't show duplicate toast here since modal handles it
+        console.log("Registration successful:", action.payload);
       })
       .addCase(register.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.error.message || "Registration failed";
-        toast.error(action.error.message || "Registration failed");
+        // Don't show toast here - let modal handle it
+        console.error("Registration failed:", action.error);
       })
 
       // Login
       .addCase(login.pending, (state) => {
         state.isLoading = true;
+        state.isLoggingIn = true;
         state.error = null;
       })
       .addCase(login.fulfilled, (state, action) => {
         state.isLoading = false;
+        state.isLoggingIn = false;
         state.isAuthenticated = true;
         state.user = action.payload.user;
         state.token = action.payload.token;
-        toast.success("Login successful!");
+        // Toast handled by modal or separate
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;
+        state.isLoggingIn = false;
         state.error = action.error.message || "Login failed";
-        toast.error(action.error.message || "Login failed");
+        // Toast handled by modal
       })
 
       // B2B Login
       .addCase(b2bLogin.pending, (state) => {
         state.isLoading = true;
+        state.isLoggingIn = true;
         state.error = null;
       })
       .addCase(b2bLogin.fulfilled, (state, action) => {
         state.isLoading = false;
+        state.isLoggingIn = false;
         state.isAuthenticated = true;
         state.user = action.payload.user;
         state.token = action.payload.token;
-        toast.success("B2B Login successful!");
       })
       .addCase(b2bLogin.rejected, (state, action) => {
         state.isLoading = false;
+        state.isLoggingIn = false;
         state.error = action.error.message || "B2B Login failed";
-        toast.error(action.error.message || "B2B Login failed");
       })
 
-      // Verify OTP
+      // Verify OTP - FIXED
       .addCase(verifyOTP.pending, (state) => {
         state.isLoading = true;
+        state.isLoggingIn = true;
         state.error = null;
       })
       .addCase(verifyOTP.fulfilled, (state, action) => {
         state.isLoading = false;
+        state.isLoggingIn = false;
         state.isAuthenticated = true;
         state.user = action.payload.user;
         state.token = action.payload.token;
-        toast.success("Email verified successfully!");
+        // Toast handled by modal
       })
       .addCase(verifyOTP.rejected, (state, action) => {
         state.isLoading = false;
+        state.isLoggingIn = false;
         state.error = action.error.message || "OTP verification failed";
-        toast.error(action.error.message || "OTP verification failed");
+        // Toast handled by modal
       })
 
-      // Resend OTP
-      .addCase(resendOTP.fulfilled, () => {
-        toast.success("New OTP sent to your email");
+      // Resend OTP - FIXED
+      .addCase(resendOTP.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(resendOTP.fulfilled, (state) => {
+        state.isLoading = false;
+        // Toast handled by modal
       })
       .addCase(resendOTP.rejected, (state, action) => {
-        toast.error(action.error.message || "Failed to resend OTP");
+        state.isLoading = false;
+        state.error = action.error.message || "Failed to resend OTP";
+        // Toast handled by modal
       })
 
       // Forgot Password
+      .addCase(forgotPassword.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(forgotPassword.fulfilled, (state) => {
+        state.isLoading = false;
+      })
       .addCase(forgotPassword.rejected, (state, action) => {
-        toast.error(action.error.message || "Failed to send reset email");
+        state.isLoading = false;
+        state.error = action.error.message || "Failed to send reset email";
       })
 
       // Reset Password
+      .addCase(resetPassword.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(resetPassword.fulfilled, (state) => {
+        state.isLoading = false;
+      })
       .addCase(resetPassword.rejected, (state, action) => {
-        toast.error(action.error.message || "Failed to reset password");
+        state.isLoading = false;
+        state.error = action.error.message || "Failed to reset password";
       })
 
       // Change Password
+      .addCase(changePassword.pending, (state) => {
+        state.isLoading = true;
+      })
+      .addCase(changePassword.fulfilled, (state) => {
+        state.isLoading = false;
+      })
       .addCase(changePassword.rejected, (state, action) => {
-        toast.error(action.error.message || "Failed to change password");
+        state.isLoading = false;
+        state.error = action.error.message || "Failed to change password";
       })
 
       // Get Current User
@@ -373,12 +443,14 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.user = action.payload;
         state.isAuthenticated = true;
+        state.isLoggingIn = false;
       })
       .addCase(getCurrentUser.rejected, (state) => {
         state.isLoading = false;
         state.user = null;
         state.isAuthenticated = false;
         state.token = null;
+        state.isLoggingIn = false;
       })
 
       // Logout
@@ -386,11 +458,21 @@ const authSlice = createSlice({
         state.user = null;
         state.token = null;
         state.isAuthenticated = false;
-        toast.success("Logged out successfully");
+        state.isLoggingIn = false;
+        state.error = null;
+        // Toast handled by modal or separate
       });
   },
 });
 
-export const { clearError, updateUser, restoreSession, setSession } =
-  authSlice.actions;
+export const {
+  clearError,
+  clearAuthError, // ADDED
+  updateUser,
+  restoreSession,
+  setSession,
+  setLoggingIn,
+  resetAuthState, // ADDED
+} = authSlice.actions;
+
 export default authSlice.reducer;
