@@ -1,13 +1,16 @@
+// store/slices/categorySlice.ts
+
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { categoryAPI } from "@/lib/api";
 
+// ✅ FIXED: Make isActive optional to match API response
 export interface Category {
   _id: string;
   name: string;
   displayName: string;
   icon?: string;
   color?: string;
-  isActive: boolean;
+  isActive?: boolean; // Changed from required to optional
   pollCount?: number;
   description?: string;
   order?: number;
@@ -50,12 +53,12 @@ export const fetchCategories = createAsyncThunk(
       const response = await categoryAPI.getAll();
 
       if (response.success && response.data?.categories) {
-        // Filter only active categories and sort by order
+        // ✅ Fixed: Filter only active categories (treat undefined as active)
         const activeCategories = response.data.categories
-          .filter((cat: Category) => cat.isActive !== false)
-          .sort((a: Category, b: Category) => (a.order || 0) - (b.order || 0));
+          .filter((cat) => cat.isActive !== false) // undefined and true are both considered active
+          .sort((a, b) => (a.order || 0) - (b.order || 0));
 
-        return activeCategories;
+        return activeCategories as Category[];
       }
 
       return rejectWithValue(response.message || "Failed to fetch categories");
@@ -75,7 +78,7 @@ export const createCategory = createAsyncThunk(
   }) => {
     const response = await categoryAPI.create(categoryData);
     if (response.success && response.data) {
-      return response.data;
+      return response.data as Category;
     }
     throw new Error(response.message || "Failed to create category");
   },
@@ -86,7 +89,7 @@ export const updateCategory = createAsyncThunk(
   async ({ id, data }: { id: string; data: Partial<Category> }) => {
     const response = await categoryAPI.update(id, data);
     if (response.success && response.data) {
-      return response.data;
+      return response.data as Category;
     }
     throw new Error(response.message || "Failed to update category");
   },
@@ -157,7 +160,6 @@ const categorySlice = createSlice({
           action.error.message ||
           "Failed to fetch categories";
       })
-
       // Create Category
       .addCase(createCategory.pending, (state) => {
         state.isLoading = true;
@@ -166,14 +168,13 @@ const categorySlice = createSlice({
       .addCase(createCategory.fulfilled, (state, action) => {
         state.isLoading = false;
         state.categories.push(action.payload);
-        state.lastFetched = null; // Invalidate cache
+        state.lastFetched = null;
         state.error = null;
       })
       .addCase(createCategory.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.error.message || "Failed to create category";
       })
-
       // Update Category
       .addCase(updateCategory.pending, (state) => {
         state.isLoading = true;
@@ -187,14 +188,13 @@ const categorySlice = createSlice({
         if (index !== -1) {
           state.categories[index] = action.payload;
         }
-        state.lastFetched = null; // Invalidate cache
+        state.lastFetched = null;
         state.error = null;
       })
       .addCase(updateCategory.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.error.message || "Failed to update category";
       })
-
       // Delete Category
       .addCase(deleteCategory.pending, (state) => {
         state.isLoading = true;
@@ -205,7 +205,7 @@ const categorySlice = createSlice({
         state.categories = state.categories.filter(
           (cat) => cat._id !== action.payload,
         );
-        state.lastFetched = null; // Invalidate cache
+        state.lastFetched = null;
         state.error = null;
       })
       .addCase(deleteCategory.rejected, (state, action) => {
