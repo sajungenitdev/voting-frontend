@@ -6,13 +6,11 @@ import { useRouter, usePathname } from "next/navigation";
 import { logout, restoreSession } from "@/store/slices/authSlice";
 import {
   ArrowRightOnRectangleIcon,
-  Cog6ToothIcon,
   ClipboardDocumentListIcon,
   HomeIcon,
   ChartBarIcon,
   ChevronDownIcon,
   UserIcon,
-  ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import Image from "next/image";
@@ -26,48 +24,91 @@ export default function Header() {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    // Force re-render when auth state changes
-    console.log("Auth state changed:", { isAuthenticated, user });
-  }, [isAuthenticated, user]);
+  const [avatarError, setAvatarError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-
-    // ✅ Restore session from localStorage on mount
     dispatch(restoreSession());
 
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
 
-    // ✅ Listen for storage events (when localStorage changes in another tab/window)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "accessToken" || e.key === "user") {
+        console.log("Header: Storage changed, restoring session...");
         dispatch(restoreSession());
       }
     };
+
+    const handleAuthUpdate = () => {
+      console.log("Header: Auth update event received");
+      dispatch(restoreSession());
+    };
+
     window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("auth-storage-updated", handleAuthUpdate);
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("auth-storage-updated", handleAuthUpdate);
     };
   }, [dispatch]);
 
-  // ✅ Also check for token on route changes
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
     const userStr = localStorage.getItem("user");
-    if (token && userStr && !isAuthenticated) {
+    if (
+      token &&
+      userStr &&
+      token !== "undefined" &&
+      userStr !== "undefined" &&
+      !isAuthenticated
+    ) {
+      console.log("Header: Found token but not authenticated, restoring...");
       dispatch(restoreSession());
     }
   }, [pathname, dispatch, isAuthenticated]);
 
   const handleLogout = async () => {
     await dispatch(logout());
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("user");
+    window.dispatchEvent(new Event("storage"));
+    window.dispatchEvent(new CustomEvent("auth-storage-updated"));
     router.push("/");
     setIsUserMenuOpen(false);
+  };
+
+  const getUserDisplayName = () => {
+    if (!user) return "User";
+    return (
+      user.name ||
+      user.fullName ||
+      user.companyName ||
+      user.email?.split("@")[0] ||
+      "User"
+    );
+  };
+
+  const getUserInitial = () => {
+    const displayName = getUserDisplayName();
+    return displayName.charAt(0).toUpperCase();
+  };
+
+  const getUserRoleDisplay = () => {
+    if (!user) return "";
+    if (user.role === "admin") return "Administrator";
+    if (user.role === "b2b_buyer") return "B2B Enterprise";
+    return "Member";
+  };
+
+  // Get avatar URL - use Google avatar or generate fallback
+  const getAvatarUrl = () => {
+    if (avatarError) return null;
+    if (user?.avatar) return user.avatar;
+    return null;
   };
 
   const navLinks = [
@@ -94,7 +135,6 @@ export default function Header() {
     { name: "B2B Pricing", href: "/b2b/pricing", icon: ChartBarIcon },
   ];
 
-  // Check if user is B2B (has companyName or role)
   const isB2BUser = user?.companyName || user?.role === "b2b_buyer";
 
   if (!mounted) {
@@ -102,12 +142,15 @@ export default function Header() {
       <header className="fixed top-0 z-50 w-full border-b bg-black/90 backdrop-blur-xl border-red-500/20">
         <div className="px-4 mx-auto max-w-7xl">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">🗳️</span>
-              <span className="text-xl font-bold text-white">
-                Voting Platform
-              </span>
-            </div>
+            <Link href="/" className="flex items-center gap-2">
+              <Image
+                src="/images/logo-black.png"
+                alt="Logo"
+                width={200}
+                height={300}
+                priority
+              />
+            </Link>
           </div>
         </div>
       </header>
@@ -119,11 +162,11 @@ export default function Header() {
       <header
         className={`fixed top-0 w-full z-50 transition-all duration-500 ${
           isScrolled
-            ? "bg-black/90 backdrop-blur-xl shadow-lg shadow-red-500/5"
-            : "bg-transparent"
+            ? "bg-black/90 backdrop-blur-xl py-3 shadow-lg shadow-black-500/5"
+            : "bg-transparent py-3 backdrop-blur-xl shadow-lg shadow-black-500/5"
         }`}
       >
-        <div className="p-4 mx-auto max-w-7xl">
+        <div className="px-4 mx-auto max-w-7xl">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2 group">
@@ -132,6 +175,8 @@ export default function Header() {
                 alt="Logo"
                 width={200}
                 height={300}
+                className="transition-transform group-hover:scale-105"
+                priority
               />
             </Link>
 
@@ -139,7 +184,8 @@ export default function Header() {
             <nav className="items-center hidden gap-1 p-1 border rounded-full md:flex bg-white/5 backdrop-blur-sm border-white/10">
               {navLinks.map((item) => {
                 if (item.auth && !isAuthenticated) return null;
-               if (item.b2b && !isB2BUser && user?.role !== "admin") return null;
+                if (item.b2b && !isB2BUser && user?.role !== "admin")
+                  return null;
                 const isActive = pathname === item.href;
                 return (
                   <Link
@@ -173,27 +219,55 @@ export default function Header() {
                   >
                     <div className="relative">
                       <div className="absolute inset-0 transition-opacity bg-red-500 rounded-full opacity-50 blur-md group-hover:opacity-100" />
-                      <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-r from-red-500 to-red-600">
-                        <span className="text-sm font-bold text-white">
-                          {user.name?.charAt(0)?.toUpperCase() ||
-                            user.fullName?.charAt(0)?.toUpperCase() ||
-                            user.companyName?.charAt(0)?.toUpperCase() ||
-                            "U"}
-                        </span>
+                      <div className="relative flex items-center justify-center w-8 h-8 overflow-hidden rounded-full bg-gradient-to-r from-red-500 to-red-600">
+                        {getAvatarUrl() ? (
+                          <div className="relative w-full h-full">
+                            <Image
+                              src={getAvatarUrl()!}
+                              alt={getUserDisplayName()}
+                              width={32}
+                              height={32}
+                              className="object-cover w-full h-full"
+                              onLoad={() => setImgLoaded(true)}
+                              onError={() => {
+                                console.error(
+                                  "Avatar failed to load:",
+                                  getAvatarUrl(),
+                                );
+                                setAvatarError(true);
+                              }}
+                              priority
+                            />
+                            {!imgLoaded && !avatarError && (
+                              <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-r from-red-500 to-red-600">
+                                <span className="text-xs font-bold text-white animate-pulse">
+                                  ...
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        ) : null}
+                        {/* Show initial as fallback when no avatar or error */}
+                        {(!getAvatarUrl() || avatarError) && (
+                          <span className="text-sm font-bold text-white">
+                            {getUserInitial()}
+                          </span>
+                        )}
+                        {/* Show initial while image is loading */}
+                        {getAvatarUrl() && !imgLoaded && !avatarError && (
+                          <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-white bg-gradient-to-r from-red-500 to-red-600">
+                            {getUserInitial()}
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="hidden text-left lg:block">
-                      <p className="text-sm font-medium text-white">
-                        {user.name ||
-                          user.fullName ||
-                          user.companyName ||
-                          "User"}
+                      <p className="text-sm font-medium text-white max-w-[120px] truncate">
+                        {getUserDisplayName()}
                       </p>
                       <div className="flex items-center gap-1">
                         <p className="text-[10px] text-gray-400 -mt-1 capitalize">
-                          {user.role === "b2b_buyer"
-                            ? "B2B Enterprise"
-                            : user.role || "user"}
+                          {getUserRoleDisplay()}
                         </p>
                         {user.role === "b2b_buyer" && (
                           <span className="text-[9px] px-1 rounded-full bg-purple-500/20 text-purple-400">
@@ -212,27 +286,40 @@ export default function Header() {
                     <div className="absolute right-0 z-50 w-64 mt-2 overflow-hidden border shadow-2xl bg-gradient-to-b from-gray-900 to-black border-red-500/30 rounded-2xl animate-fadeIn">
                       <div className="p-4 border-b border-red-500/20 bg-gradient-to-r from-red-500/10 to-transparent">
                         <div className="flex items-center gap-3">
-                          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-red-500 to-red-600">
-                            <span className="text-lg font-bold text-white">
-                              {user.name?.charAt(0)?.toUpperCase() ||
-                                user.fullName?.charAt(0)?.toUpperCase() ||
-                                user.companyName?.charAt(0)?.toUpperCase() ||
-                                "U"}
-                            </span>
+                          <div className="flex items-center justify-center w-10 h-10 overflow-hidden rounded-full bg-gradient-to-r from-red-500 to-red-600">
+                            {getAvatarUrl() && !avatarError ? (
+                              <Image
+                                src={getAvatarUrl()!}
+                                alt={getUserDisplayName()}
+                                width={40}
+                                height={40}
+                                className="object-cover w-full h-full"
+                                onError={() => setAvatarError(true)}
+                              />
+                            ) : (
+                              <span className="text-lg font-bold text-white">
+                                {getUserInitial()}
+                              </span>
+                            )}
                           </div>
-                          <div>
-                            <p className="font-semibold text-white">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-white truncate">
                               {user.name ||
                                 user.fullName ||
                                 user.companyName ||
                                 "User"}
                             </p>
-                            <p className="text-xs text-gray-400">
-                              {user.email}
+                            <p className="text-xs text-gray-400 truncate">
+                              {user.email || "No email"}
                             </p>
                             {user.role === "b2b_buyer" && (
                               <p className="text-[10px] text-purple-400 mt-0.5">
                                 B2B Enterprise Account
+                              </p>
+                            )}
+                            {user.companyName && (
+                              <p className="text-[10px] text-gray-500 mt-0.5">
+                                {user.companyName}
                               </p>
                             )}
                           </div>
@@ -240,17 +327,25 @@ export default function Header() {
                       </div>
 
                       <div className="py-2">
-                        {userMenuItems.map((item) => (
-                          <Link
-                            key={item.name}
-                            href={item.href}
-                            onClick={() => setIsUserMenuOpen(false)}
-                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-red-500/10 transition-colors"
-                          >
-                            <item.icon className="w-4 h-4" />
-                            {item.name}
-                          </Link>
-                        ))}
+                        {userMenuItems.map((item) => {
+                          if (
+                            item.name.includes("B2B") &&
+                            !isB2BUser &&
+                            user?.role !== "admin"
+                          )
+                            return null;
+                          return (
+                            <Link
+                              key={item.name}
+                              href={item.href}
+                              onClick={() => setIsUserMenuOpen(false)}
+                              className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-red-500/10 transition-colors"
+                            >
+                              <item.icon className="w-4 h-4" />
+                              {item.name}
+                            </Link>
+                          );
+                        })}
                       </div>
 
                       <div className="py-2 border-t border-red-500/20">
@@ -330,16 +425,26 @@ export default function Header() {
               );
             })}
             {isAuthenticated && (
-              <button
-                onClick={() => {
-                  handleLogout();
-                  setIsMobileMenuOpen(false);
-                }}
-                className="flex items-center justify-center w-full max-w-xs gap-2 px-6 py-3 text-center text-red-400 border rounded-xl border-red-500/30 hover:bg-red-500/10"
-              >
-                <ArrowRightOnRectangleIcon className="w-5 h-5" />
-                Logout
-              </button>
+              <>
+                <Link
+                  href="/dashboard/profile"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center w-full max-w-xs gap-3 px-6 py-3 text-gray-300 rounded-xl hover:bg-white/10"
+                >
+                  <UserIcon className="w-5 h-5" />
+                  My Profile
+                </Link>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className="flex items-center justify-center w-full max-w-xs gap-2 px-6 py-3 text-center text-red-400 border rounded-xl border-red-500/30 hover:bg-red-500/10"
+                >
+                  <ArrowRightOnRectangleIcon className="w-5 h-5" />
+                  Logout
+                </button>
+              </>
             )}
             {!isAuthenticated && (
               <>

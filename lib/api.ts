@@ -17,6 +17,7 @@ export interface ApiResponse<T = unknown> {
 }
 
 // User types
+// lib/api.ts - Add this to your User interface
 export interface User {
   _id: string;
   id?: string;
@@ -29,6 +30,36 @@ export interface User {
   createdAt?: string;
   lastLogin?: string;
   phoneNumber?: string;
+  avatar?: string;
+  bio?: string;
+  location?: {
+    country?: string;
+    city?: string;
+    timezone?: string;
+  };
+  socialLinks?: {
+    website?: string;
+    twitter?: string;
+    linkedin?: string;
+    github?: string;
+  };
+  preferences?: {
+    theme?: string;
+    notifications?: {
+      email?: boolean;
+      push?: boolean;
+      voteUpdates?: boolean;
+      pollEnding?: boolean;
+    };
+    language?: string;
+  };
+  statistics?: {
+    totalVotes?: number;
+    totalPollsCreated?: number;
+    totalComments?: number;
+    joinDate?: string;
+    lastActive?: string;
+  };
 }
 
 // Auth types
@@ -253,8 +284,7 @@ export interface QueryParams {
 
 // ==================== CONFIGURATION ====================
 const API_BASE_URL: string =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://voting-server-rhkg.onrender.com/api/v1";
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
 if (process.env.NODE_ENV === "development") {
   console.log(`🔗 API Base URL: ${API_BASE_URL}`);

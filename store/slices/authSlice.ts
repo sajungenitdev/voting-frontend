@@ -1,9 +1,10 @@
 // store/slices/authSlice.ts
+
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
 
-interface User {
+export interface User {
   _id: string;
   id?: string;
   name: string;
@@ -15,6 +16,38 @@ interface User {
   createdAt?: string;
   lastLogin?: string;
   phoneNumber?: string;
+  avatar?: string;
+  bio?: string;
+  location?: {
+    country?: string;
+    city?: string;
+    timezone?: string;
+  };
+  socialLinks?: {
+    website?: string;
+    twitter?: string;
+    linkedin?: string;
+    github?: string;
+  };
+  preferences?: {
+    theme?: string;
+    notifications?: {
+      email?: boolean;
+      push?: boolean;
+      voteUpdates?: boolean;
+      pollEnding?: boolean;
+    };
+    language?: string;
+  };
+  statistics?: {
+    totalVotes?: number;
+    totalPollsCreated?: number;
+    totalComments?: number;
+    joinDate?: string;
+    lastActive?: string;
+  };
+  googleId?: string;
+  isActive?: boolean;
 }
 
 interface AuthState {
@@ -40,7 +73,12 @@ const normalizeUser = (userData: any): User => {
   return {
     _id: userData._id || userData.id,
     id: userData._id || userData.id,
-    name: userData.name || userData.fullName || userData.companyName || "User",
+    name:
+      userData.name ||
+      userData.fullName ||
+      userData.companyName ||
+      userData.email?.split("@")[0] ||
+      "User",
     fullName: userData.fullName || userData.name,
     companyName: userData.companyName,
     email: userData.email,
@@ -49,10 +87,18 @@ const normalizeUser = (userData: any): User => {
     createdAt: userData.createdAt,
     lastLogin: userData.lastLogin,
     phoneNumber: userData.phoneNumber,
+    avatar: userData.avatar,
+    bio: userData.bio,
+    location: userData.location,
+    socialLinks: userData.socialLinks,
+    preferences: userData.preferences,
+    statistics: userData.statistics,
+    googleId: userData.googleId,
+    isActive: userData.isActive,
   };
 };
 
-// Register user - FIXED to return proper data structure
+// Register user
 export const register = createAsyncThunk(
   "auth/register",
   async ({
@@ -69,27 +115,24 @@ export const register = createAsyncThunk(
       email,
       password,
     });
-
     if (response.data.success) {
-      // Return consistent structure that modal expects
       return {
         success: true,
         message:
           response.data.message ||
           "Registration successful. Please verify your email.",
-        email: email, // Store email for OTP
+        email: email,
       };
     }
     throw new Error(response.data.message || "Registration failed");
   },
 );
 
-// Login user - FIXED
+// Login user
 export const login = createAsyncThunk(
   "auth/login",
   async ({ email, password }: { email: string; password: string }) => {
     const response = await api.post("/auth/login", { email, password });
-
     if (response.data.success) {
       const { accessToken, user } = response.data.data;
       const normalizedUser = normalizeUser(user);
@@ -101,12 +144,11 @@ export const login = createAsyncThunk(
   },
 );
 
-// Verify OTP - FIXED to better handle response
+// Verify OTP
 export const verifyOTP = createAsyncThunk(
   "auth/verifyOTP",
   async ({ email, otp }: { email: string; otp: string }) => {
     const response = await api.post("/auth/verify-otp", { email, otp });
-
     if (response.data.success) {
       const { accessToken, user } = response.data.data;
       const normalizedUser = normalizeUser(user);
@@ -118,12 +160,11 @@ export const verifyOTP = createAsyncThunk(
   },
 );
 
-// Resend OTP - FIXED
+// Resend OTP
 export const resendOTP = createAsyncThunk(
   "auth/resendOTP",
   async ({ email }: { email: string }) => {
     const response = await api.post("/auth/resend-otp", { email });
-
     if (response.data.success) {
       return { success: true, message: response.data.message };
     }
@@ -189,8 +230,8 @@ export const getCurrentUser = createAsyncThunk(
   "auth/getCurrentUser",
   async () => {
     const token = localStorage.getItem("accessToken");
-    if (!token) {
-      throw new Error("No token found");
+    if (!token || token === "undefined" || token === "null") {
+      throw new Error("No valid token found");
     }
     const response = await api.get("/auth/me");
     if (response.data.success) {
@@ -201,17 +242,6 @@ export const getCurrentUser = createAsyncThunk(
     throw new Error(response.data.message || "Failed to get user");
   },
 );
-
-// Logout
-export const logout = createAsyncThunk("auth/logout", async () => {
-  try {
-    await api.post("/auth/logout");
-  } catch (error) {
-    console.error("Logout error:", error);
-  }
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("user");
-});
 
 // B2B Login
 export const b2bLogin = createAsyncThunk(
@@ -229,6 +259,33 @@ export const b2bLogin = createAsyncThunk(
   },
 );
 
+// Logout - FIXED: Don't let API errors break the logout
+export const logout = createAsyncThunk("auth/logout", async () => {
+  try {
+    const token = localStorage.getItem("accessToken");
+    if (token && token !== "undefined" && token !== "null") {
+      try {
+        await api.post("/auth/logout");
+      } catch (apiError) {
+        console.log("Logout API call failed, continuing with local cleanup");
+      }
+    }
+  } catch (error) {
+    console.error("Logout error:", error);
+  } finally {
+    // Always clear local storage regardless of API response
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("user");
+    localStorage.removeItem("refreshToken");
+
+    // Dispatch events to notify other components
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("storage"));
+      window.dispatchEvent(new CustomEvent("auth-storage-updated"));
+    }
+  }
+});
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
@@ -236,21 +293,17 @@ const authSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
-    // ADD THIS MISSING ACTION
     clearAuthError: (state) => {
       state.error = null;
       state.isLoading = false;
       state.isLoggingIn = false;
     },
-    updateUser: (state, action) => {
-      state.user = { ...state.user, ...action.payload };
+    updateUser: (state, action: PayloadAction<Partial<User>>) => {
       if (state.user) {
-        const updatedUser = normalizeUser(state.user);
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-        state.user = updatedUser;
+        state.user = { ...state.user, ...action.payload };
+        localStorage.setItem("user", JSON.stringify(state.user));
       }
     },
-    // Restore session from localStorage
     restoreSession: (state) => {
       const token = localStorage.getItem("accessToken");
       const userStr = localStorage.getItem("user");
@@ -258,7 +311,13 @@ const authSlice = createSlice({
       console.log("Restoring session - Token exists:", !!token);
       console.log("Restoring session - User exists:", !!userStr);
 
-      if (token && userStr) {
+      if (
+        token &&
+        userStr &&
+        token !== "undefined" &&
+        token !== "null" &&
+        userStr !== "undefined"
+      ) {
         try {
           const userData = JSON.parse(userStr);
           const normalizedUser = normalizeUser(userData);
@@ -266,7 +325,7 @@ const authSlice = createSlice({
           state.user = normalizedUser;
           state.isAuthenticated = true;
           state.isLoggingIn = false;
-          console.log("Session restored successfully:", normalizedUser);
+          console.log("Session restored successfully:", normalizedUser?.name);
         } catch (e) {
           console.error("Failed to restore session:", e);
           state.user = null;
@@ -275,12 +334,14 @@ const authSlice = createSlice({
           state.isLoggingIn = false;
         }
       } else {
-        console.log("No session found in localStorage");
+        console.log("No valid session found");
         state.isLoggingIn = false;
       }
     },
-    // Force set session (for B2B OTP flow)
-    setSession: (state, action) => {
+    setSession: (
+      state,
+      action: PayloadAction<{ token: string; user: User }>,
+    ) => {
       const { token, user } = action.payload;
       const normalizedUser = normalizeUser(user);
       state.token = token;
@@ -291,11 +352,9 @@ const authSlice = createSlice({
       localStorage.setItem("user", JSON.stringify(normalizedUser));
       console.log("Session set manually:", normalizedUser);
     },
-    // Set logging in state
     setLoggingIn: (state, action: PayloadAction<boolean>) => {
       state.isLoggingIn = action.payload;
     },
-    // Reset auth state
     resetAuthState: (state) => {
       state.user = null;
       state.token = null;
@@ -307,24 +366,17 @@ const authSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Register - FIXED to match modal expectations
       .addCase(register.pending, (state) => {
         state.isLoading = true;
         state.error = null;
       })
-      .addCase(register.fulfilled, (state, action) => {
+      .addCase(register.fulfilled, (state) => {
         state.isLoading = false;
-        // Don't show duplicate toast here since modal handles it
-        console.log("Registration successful:", action.payload);
       })
       .addCase(register.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.error.message || "Registration failed";
-        // Don't show toast here - let modal handle it
-        console.error("Registration failed:", action.error);
       })
-
-      // Login
       .addCase(login.pending, (state) => {
         state.isLoading = true;
         state.isLoggingIn = true;
@@ -336,16 +388,12 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
         state.user = action.payload.user;
         state.token = action.payload.token;
-        // Toast handled by modal or separate
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;
         state.isLoggingIn = false;
         state.error = action.error.message || "Login failed";
-        // Toast handled by modal
       })
-
-      // B2B Login
       .addCase(b2bLogin.pending, (state) => {
         state.isLoading = true;
         state.isLoggingIn = true;
@@ -363,8 +411,6 @@ const authSlice = createSlice({
         state.isLoggingIn = false;
         state.error = action.error.message || "B2B Login failed";
       })
-
-      // Verify OTP - FIXED
       .addCase(verifyOTP.pending, (state) => {
         state.isLoading = true;
         state.isLoggingIn = true;
@@ -376,30 +422,22 @@ const authSlice = createSlice({
         state.isAuthenticated = true;
         state.user = action.payload.user;
         state.token = action.payload.token;
-        // Toast handled by modal
       })
       .addCase(verifyOTP.rejected, (state, action) => {
         state.isLoading = false;
         state.isLoggingIn = false;
         state.error = action.error.message || "OTP verification failed";
-        // Toast handled by modal
       })
-
-      // Resend OTP - FIXED
       .addCase(resendOTP.pending, (state) => {
         state.isLoading = true;
       })
       .addCase(resendOTP.fulfilled, (state) => {
         state.isLoading = false;
-        // Toast handled by modal
       })
       .addCase(resendOTP.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.error.message || "Failed to resend OTP";
-        // Toast handled by modal
       })
-
-      // Forgot Password
       .addCase(forgotPassword.pending, (state) => {
         state.isLoading = true;
       })
@@ -410,8 +448,6 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = action.error.message || "Failed to send reset email";
       })
-
-      // Reset Password
       .addCase(resetPassword.pending, (state) => {
         state.isLoading = true;
       })
@@ -422,8 +458,6 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = action.error.message || "Failed to reset password";
       })
-
-      // Change Password
       .addCase(changePassword.pending, (state) => {
         state.isLoading = true;
       })
@@ -434,8 +468,6 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.error = action.error.message || "Failed to change password";
       })
-
-      // Get Current User
       .addCase(getCurrentUser.pending, (state) => {
         state.isLoading = true;
       })
@@ -452,27 +484,24 @@ const authSlice = createSlice({
         state.token = null;
         state.isLoggingIn = false;
       })
-
-      // Logout
       .addCase(logout.fulfilled, (state) => {
         state.user = null;
         state.token = null;
         state.isAuthenticated = false;
         state.isLoggingIn = false;
         state.error = null;
-        // Toast handled by modal or separate
       });
   },
 });
 
 export const {
   clearError,
-  clearAuthError, // ADDED
+  clearAuthError,
   updateUser,
   restoreSession,
   setSession,
   setLoggingIn,
-  resetAuthState, // ADDED
+  resetAuthState,
 } = authSlice.actions;
 
 export default authSlice.reducer;

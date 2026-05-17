@@ -1,4 +1,5 @@
 // store/slices/pollSlice.ts
+
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import api from "@/lib/api";
 
@@ -59,6 +60,8 @@ interface PollState {
   isLoading: boolean;
   error: string | null;
   voteError: string | null;
+  totalPages: number;
+  currentPage: number;
 }
 
 interface VoteError {
@@ -72,12 +75,20 @@ const initialState: PollState = {
   isLoading: false,
   error: null,
   voteError: null,
+  totalPages: 1,
+  currentPage: 1,
 };
 
 // ============ ASYNC THUNKS ============
 export const fetchPolls = createAsyncThunk<
   PollsResponse,
-  | { limit?: number; category?: string; status?: string; search?: string }
+  | {
+      page?: number;
+      limit?: number;
+      category?: string;
+      status?: string;
+      search?: string;
+    }
   | undefined
 >("polls/fetchPolls", async (params = { limit: 50 }, { rejectWithValue }) => {
   try {
@@ -96,10 +107,7 @@ export const castVote = createAsyncThunk<
   { rejectValue: VoteError }
 >("polls/castVote", async ({ pollId, candidateId }, { rejectWithValue }) => {
   try {
-    const response = await api.post("/votes", {
-      pollId,
-      candidateId,
-    });
+    const response = await api.post("/votes", { pollId, candidateId });
     return { pollId, candidateId, voteData: response.data };
   } catch (error: any) {
     if (error.response?.status === 400) {
@@ -162,6 +170,8 @@ const pollSlice = createSlice({
       state.error = null;
       state.voteError = null;
       state.isLoading = false;
+      state.currentPage = 1;
+      state.totalPages = 1;
     },
   },
   extraReducers: (builder) => {
@@ -174,6 +184,8 @@ const pollSlice = createSlice({
       .addCase(fetchPolls.fulfilled, (state, action) => {
         state.isLoading = false;
         state.polls = action.payload?.data?.polls || [];
+        state.totalPages = action.payload?.pagination?.pages || 1;
+        state.currentPage = action.payload?.pagination?.page || 1;
         state.error = null;
       })
       .addCase(fetchPolls.rejected, (state, action) => {
@@ -214,7 +226,7 @@ export const {
   clearError,
   clearVoteError,
   updatePollVote,
-  updatePollLocally,
+  updatePollLocally, // ✅ Make sure this is exported
   resetPolls,
 } = pollSlice.actions;
 

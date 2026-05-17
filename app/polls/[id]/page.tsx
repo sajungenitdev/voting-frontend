@@ -7,6 +7,7 @@ import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { fetchPolls, castVote } from "@/store/slices/pollSlice";
 import LoginModal from "@/components/ui/LoginModal";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import {
   ChartBarIcon,
@@ -16,6 +17,19 @@ import {
   ArrowLeftIcon,
   ShareIcon,
   FlagIcon,
+  TrophyIcon,
+  FireIcon,
+  UserGroupIcon,
+  DocumentTextIcon,
+  CalendarIcon,
+  TagIcon,
+  EyeIcon,
+  HeartIcon,
+  ChatBubbleLeftRightIcon,
+  ArrowTrendingUpIcon,
+  SignalIcon,
+  GlobeAltIcon,
+  DevicePhoneMobileIcon,
 } from "@heroicons/react/24/solid";
 
 interface Candidate {
@@ -42,6 +56,7 @@ interface Poll {
   };
   userVoted?: boolean;
   userVoteCandidateId?: string | null;
+  createdAt?: string;
 }
 
 export default function PollDetailPage() {
@@ -58,6 +73,8 @@ export default function PollDetailPage() {
   const [isVoting, setIsVoting] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [hoveredCandidate, setHoveredCandidate] = useState<string | null>(null);
 
   const pollId = params.id as string;
 
@@ -163,377 +180,624 @@ export default function PollDetailPage() {
     return (candidate.voteCount / totalVotes) * 100;
   };
 
+  // Calculate winner and rankings
+  const sortedCandidates = [...poll.candidates].sort(
+    (a, b) => b.voteCount - a.voteCount,
+  );
+  const winner = sortedCandidates[0];
+  const runnerUp = sortedCandidates[1];
+  const participationRate =
+    totalVotes > 0 ? (totalVotes / (poll.candidates.length * 100)) * 100 : 0;
+
+  // Prepare chart data
+  const chartData = poll.candidates.map((candidate) => ({
+    name: candidate.name,
+    votes: candidate.voteCount,
+    percentage: getVotePercentage(candidate._id),
+  }));
+
+  const maxVotes = Math.max(...chartData.map((d) => d.votes), 1);
+
   return (
-    <div className="min-h-screen py-20 bg-black">
-      <div className="max-w-7xl max-w-7xl px-4 py-8 mx-auto">
+    <div className="min-h-screen py-20 bg-gradient-to-br from-black via-gray-900 to-black">
+      <div className="px-4 py-8 mx-auto max-w-7xl">
         {/* Back Button */}
-        <button
+        <motion.button
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
           onClick={() => router.back()}
-          className="flex items-center gap-2 mb-6 text-gray-400 transition-colors hover:text-white"
+          className="flex items-center gap-2 mb-6 text-gray-400 transition-colors hover:text-white group"
         >
-          <ArrowLeftIcon className="w-4 h-4" />
+          <ArrowLeftIcon className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
           Back
-        </button>
+        </motion.button>
 
-        {/* Poll Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <span className="px-3 py-1 text-sm text-gray-300 bg-gray-800 rounded-full">
-                {poll.category}
-              </span>
-              <span
-                className={`px-3 py-1 text-sm rounded-full ${
-                  isActive
-                    ? "bg-green-500/20 text-green-400"
-                    : "bg-gray-500/20 text-gray-400"
-                }`}
-              >
-                {isActive ? "Active" : "Ended"}
-              </span>
-            </div>
-            <div className="relative">
-              <button
-                onClick={() => setShowShareMenu(!showShareMenu)}
-                className="p-2 transition-colors rounded-lg hover:bg-white/10"
-              >
-                <ShareIcon className="w-5 h-5 text-gray-400" />
-              </button>
+        <div className="grid gap-8 lg:grid-cols-3">
+          {/* Main Content - Left Side */}
+          <div className="lg:col-span-2">
+            {/* Poll Header */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-8"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="px-3 py-1 text-sm font-medium text-gray-300 bg-gray-800 rounded-full">
+                    {poll.category}
+                  </span>
+                  <span
+                    className={`px-3 py-1 text-sm font-medium rounded-full flex items-center gap-1 ${
+                      isActive
+                        ? "bg-green-500/20 text-green-400"
+                        : "bg-gray-500/20 text-gray-400"
+                    }`}
+                  >
+                    {isActive ? (
+                      <FireIcon className="w-3 h-3" />
+                    ) : (
+                      <ClockIcon className="w-3 h-3" />
+                    )}
+                    {isActive ? "Active" : "Ended"}
+                  </span>
+                  {poll.userVoted && (
+                    <span className="flex items-center gap-1 px-3 py-1 text-sm font-medium text-green-400 rounded-full bg-green-500/20">
+                      <CheckCircleIcon className="w-3 h-3" />
+                      Voted
+                    </span>
+                  )}
+                </div>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowShareMenu(!showShareMenu)}
+                    className="p-2 transition-colors rounded-lg hover:bg-white/10"
+                  >
+                    <ShareIcon className="w-5 h-5 text-gray-400" />
+                  </button>
 
-              {showShareMenu && (
-                <>
-                  {/* Backdrop */}
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setShowShareMenu(false)}
-                  />
-
-                  {/* Share Menu */}
-                  <div className="absolute right-0 z-50 w-64 mt-2 overflow-hidden bg-gray-900 border border-gray-800 shadow-2xl rounded-xl">
-                    <div className="p-3 border-b border-gray-800">
-                      <p className="text-sm font-medium text-white">
-                        Share this poll
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Share with your network
-                      </p>
-                    </div>
-
-                    <div className="p-2">
-                      {/* Copy Link */}
-                      <button
-                        onClick={handleShare}
-                        className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-300 transition-colors rounded-lg hover:bg-white/10"
-                      >
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.102m3.172-5.656a4 4 0 015.656 0l4 4a4 4 0 01-5.656 5.656l-1.102-1.102"
-                          />
-                        </svg>
-                        Copy link
-                      </button>
-
-                      {/* Twitter/X */}
-                      <button
-                        onClick={() => {
-                          const url = encodeURIComponent(window.location.href);
-                          const text = encodeURIComponent(
-                            `Check out this poll: ${poll?.title}`,
-                          );
-                          window.open(
-                            `https://twitter.com/intent/tweet?text=${text}&url=${url}`,
-                            "_blank",
-                          );
-                          setShowShareMenu(false);
-                        }}
-                        className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-300 transition-colors rounded-lg hover:bg-white/10"
-                      >
-                        <svg
-                          className="w-5 h-5"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                        </svg>
-                        X (Twitter)
-                      </button>
-
-                      {/* Facebook */}
-                      <button
-                        onClick={() => {
-                          const url = encodeURIComponent(window.location.href);
-                          window.open(
-                            `https://www.facebook.com/sharer/sharer.php?u=${url}`,
-                            "_blank",
-                          );
-                          setShowShareMenu(false);
-                        }}
-                        className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-300 transition-colors rounded-lg hover:bg-white/10"
-                      >
-                        <svg
-                          className="w-5 h-5 text-blue-500"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" />
-                        </svg>
-                        Facebook
-                      </button>
-
-                      {/* LinkedIn */}
-                      <button
-                        onClick={() => {
-                          const url = encodeURIComponent(window.location.href);
-                          const title = encodeURIComponent(poll?.title || "");
-                          window.open(
-                            `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
-                            "_blank",
-                          );
-                          setShowShareMenu(false);
-                        }}
-                        className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-300 transition-colors rounded-lg hover:bg-white/10"
-                      >
-                        <svg
-                          className="w-5 h-5 text-blue-700"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451c.979 0 1.771-.773 1.771-1.729V1.729C24 .774 23.204 0 22.225 0z" />
-                        </svg>
-                        LinkedIn
-                      </button>
-
-                      {/* WhatsApp */}
-                      <button
-                        onClick={() => {
-                          const url = encodeURIComponent(window.location.href);
-                          const text = encodeURIComponent(
-                            `Check out this poll: ${poll?.title}\n\n`,
-                          );
-                          window.open(
-                            `https://wa.me/?text=${text}${url}`,
-                            "_blank",
-                          );
-                          setShowShareMenu(false);
-                        }}
-                        className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-300 transition-colors rounded-lg hover:bg-white/10"
-                      >
-                        <svg
-                          className="w-5 h-5 text-green-500"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M20.52 3.48C18.27 1.23 15.21 0 12 0 5.37 0 0 5.37 0 12c0 2.11.55 4.17 1.6 6.01L.01 24l6.05-1.58c1.76.96 3.78 1.49 5.94 1.49 6.63 0 12-5.37 12-12 0-3.21-1.23-6.27-3.48-8.52zM12 21.6c-1.82 0-3.6-.49-5.16-1.42l-.37-.22-3.59.94.96-3.5-.24-.38c-1-1.62-1.53-3.49-1.53-5.42 0-5.52 4.48-10 10-10 2.67 0 5.18 1.04 7.07 2.93 1.89 1.89 2.93 4.4 2.93 7.07 0 5.52-4.48 10-10 10z" />
-                          <path d="M17.2 14.68c-.29-.15-1.71-.84-1.98-.94-.26-.1-.45-.15-.64.15-.19.3-.74.94-.91 1.13-.17.19-.34.22-.63.07-.29-.15-1.22-.45-2.33-1.44-.86-.77-1.44-1.72-1.61-2.01-.17-.29-.02-.45.13-.59.13-.13.29-.34.43-.51.14-.17.19-.29.29-.48.1-.19.05-.36-.03-.5-.07-.14-.64-1.54-.88-2.11-.23-.56-.46-.48-.64-.49-.16 0-.35-.01-.54-.01-.19 0-.49.07-.75.35-.26.28-1 .97-1 2.37 0 1.4 1.02 2.76 1.16 2.95.14.19 2.01 3.07 4.87 4.3.68.29 1.21.46 1.62.59.68.22 1.3.19 1.79.12.55-.08 1.71-.7 1.95-1.37.24-.67.24-1.24.17-1.36-.07-.12-.26-.19-.55-.34z" />
-                        </svg>
-                        WhatsApp
-                      </button>
-
-                      {/* Telegram */}
-                      <button
-                        onClick={() => {
-                          const url = encodeURIComponent(window.location.href);
-                          const text = encodeURIComponent(
-                            `Check out this poll: ${poll?.title}`,
-                          );
-                          window.open(
-                            `https://t.me/share/url?url=${url}&text=${text}`,
-                            "_blank",
-                          );
-                          setShowShareMenu(false);
-                        }}
-                        className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-300 transition-colors rounded-lg hover:bg-white/10"
-                      >
-                        <svg
-                          className="w-5 h-5 text-blue-400"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.2-.04-.28-.02-.12.02-1.96 1.24-5.54 3.66-.52.36-.99.53-1.41.52-.47-.02-1.36-.26-2.03-.48-.82-.26-1.47-.4-1.41-.85.03-.23.35-.48.95-.73 3.74-1.63 6.23-2.7 7.48-3.22 3.56-1.48 4.3-1.74 4.78-1.74.11 0 .35.03.5.2.14.16.16.37.18.54-.02-.01.03-.85-.06.51z" />
-                        </svg>
-                        Telegram
-                      </button>
-
-                      {/* Reddit */}
-                      <button
-                        onClick={() => {
-                          const url = encodeURIComponent(window.location.href);
-                          const title = encodeURIComponent(poll?.title || "");
-                          window.open(
-                            `https://reddit.com/submit?url=${url}&title=${title}`,
-                            "_blank",
-                          );
-                          setShowShareMenu(false);
-                        }}
-                        className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-300 transition-colors rounded-lg hover:bg-white/10"
-                      >
-                        <svg
-                          className="w-5 h-5 text-orange-500"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.5 13c0 .83-.67 1.5-1.5 1.5-.45 0-.86-.2-1.14-.52-.91.58-2.12.93-3.36.98.07.6.18 1.2.38 1.77.27.75.68 1.36 1.17 1.87.55.55 1.1 1.12 1.1 1.96 0 .68-.37 1.28-.92 1.62-.55.34-1.23.5-1.97.5-.84 0-1.6-.25-2.17-.67-.56-.42-.9-1.02-.9-1.68 0-.55.2-1.05.6-1.45.28-.28.66-.45 1.08-.48-.02-.05-.04-.1-.04-.15 0-.55.45-1 1-1s1 .45 1 1c0 .05-.02.1-.04.15 1.24-.05 2.45-.4 3.36-.98-.28-.32-.69-.52-1.14-.52-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5c0-.47-.22-.89-.56-1.17.77-.36 1.46-.87 2.05-1.5.66-.71 1.05-1.62 1.12-2.58 1.44-.07 2.62-1.26 2.62-2.72z" />
-                        </svg>
-                        Reddit
-                      </button>
-
-                      {/* Email */}
-                      <button
-                        onClick={() => {
-                          const url = window.location.href;
-                          const subject = encodeURIComponent(
-                            `Check out this poll: ${poll?.title}`,
-                          );
-                          const body = encodeURIComponent(
-                            `I thought you might be interested in this poll:\n\n${url}\n\nVote now!`,
-                          );
-                          window.location.href = `mailto:?subject=${subject}&body=${body}`;
-                          setShowShareMenu(false);
-                        }}
-                        className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-300 transition-colors rounded-lg hover:bg-white/10"
-                      >
-                        <svg
-                          className="w-5 h-5 text-gray-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                          />
-                        </svg>
-                        Email
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          <h1 className="mb-4 text-3xl font-bold text-white md:text-4xl">
-            {poll.title}
-          </h1>
-          <p className="text-lg text-gray-400">{poll.description}</p>
-
-          <div className="flex flex-wrap items-center gap-6 mt-4 text-sm text-gray-500">
-            <div className="flex items-center gap-2">
-              <UsersIcon className="w-4 h-4" />
-              <span>{poll.candidates.length} Candidates</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <ChartBarIcon className="w-4 h-4" />
-              <span>{totalVotes.toLocaleString()} Total Votes</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <ClockIcon className="w-4 h-4" />
-              <span>Ends {timeLeft}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Candidates Section */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-white">Candidates</h2>
-
-          {poll.candidates.map((candidate) => {
-            const percentage = getVotePercentage(candidate._id);
-            const isSelected = selectedCandidate === candidate._id;
-            const hasVoted = poll.userVoted || false;
-
-            return (
-              <div
-                key={candidate._id}
-                className={`p-6 transition-all border rounded-xl ${
-                  hasVoted && isSelected
-                    ? "border-red-500 bg-gradient-to-r from-red-500/20 to-red-600/20"
-                    : "border-gray-800 bg-gradient-to-br from-gray-900 to-black"
-                } hover:border-red-500/50`}
-              >
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      {!hasVoted && isActive && (
+                  <AnimatePresence>
+                    {showShareMenu && (
+                      <>
                         <div
-                          onClick={() => handleVote(candidate._id)}
-                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all ${
-                            isSelected
-                              ? "border-red-500 bg-red-500/20"
-                              : "border-gray-500 hover:border-red-400"
-                          }`}
+                          className="fixed inset-0 z-40"
+                          onClick={() => setShowShareMenu(false)}
+                        />
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                          className="absolute right-0 z-50 w-64 mt-2 overflow-hidden bg-gray-900 border border-gray-800 shadow-2xl rounded-xl"
                         >
-                          {isSelected && (
-                            <div className="w-2 h-2 bg-red-500 rounded-full" />
+                          <div className="p-3 border-b border-gray-800">
+                            <p className="text-sm font-medium text-white">
+                              Share this poll
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Share with your network
+                            </p>
+                          </div>
+                          <div className="p-2">
+                            <button
+                              onClick={handleShare}
+                              className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/10"
+                            >
+                              <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.102m3.172-5.656a4 4 0 015.656 0l4 4a4 4 0 01-5.656 5.656l-1.102-1.102"
+                                />
+                              </svg>
+                              Copy link
+                            </button>
+                            <button
+                              onClick={() => {
+                                window.open(
+                                  `https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out this poll: ${poll.title}`)}&url=${encodeURIComponent(window.location.href)}`,
+                                  "_blank",
+                                );
+                                setShowShareMenu(false);
+                              }}
+                              className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/10"
+                            >
+                              <svg
+                                className="w-5 h-5"
+                                fill="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                              </svg>
+                              X (Twitter)
+                            </button>
+                            <button
+                              onClick={() => {
+                                window.open(
+                                  `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}`,
+                                  "_blank",
+                                );
+                                setShowShareMenu(false);
+                              }}
+                              className="flex items-center w-full gap-3 px-3 py-2 text-sm text-gray-300 rounded-lg hover:bg-white/10"
+                            >
+                              <svg
+                                className="w-5 h-5 text-blue-500"
+                                fill="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" />
+                              </svg>
+                              Facebook
+                            </button>
+                          </div>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+
+              <h1 className="mb-4 text-3xl font-bold text-white md:text-4xl">
+                {poll.title}
+              </h1>
+              <p className="text-lg text-gray-400">{poll.description}</p>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 gap-4 mt-6 sm:grid-cols-4">
+                <div className="p-4 text-center border border-gray-800 rounded-xl bg-white/5">
+                  <UsersIcon className="w-5 h-5 mx-auto mb-2 text-blue-400" />
+                  <p className="text-2xl font-bold text-white">
+                    {poll.candidates.length}
+                  </p>
+                  <p className="text-xs text-gray-500">Candidates</p>
+                </div>
+                <div className="p-4 text-center border border-gray-800 rounded-xl bg-white/5">
+                  <ChartBarIcon className="w-5 h-5 mx-auto mb-2 text-green-400" />
+                  <p className="text-2xl font-bold text-white">
+                    {totalVotes.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-gray-500">Total Votes</p>
+                </div>
+                <div className="p-4 text-center border border-gray-800 rounded-xl bg-white/5">
+                  <ClockIcon className="w-5 h-5 mx-auto mb-2 text-yellow-400" />
+                  <p className="text-sm font-bold text-yellow-400">
+                    {timeLeft}
+                  </p>
+                  <p className="text-xs text-gray-500">Remaining</p>
+                </div>
+                <div className="p-4 text-center border border-gray-800 rounded-xl bg-white/5">
+                  <SignalIcon className="w-5 h-5 mx-auto mb-2 text-purple-400" />
+                  <p className="text-2xl font-bold text-purple-400">
+                    {participationRate.toFixed(1)}%
+                  </p>
+                  <p className="text-xs text-gray-500">Participation</p>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Candidates Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-white">Candidates</h2>
+                {totalVotes > 0 && (
+                  <button
+                    onClick={() => setShowAnalytics(!showAnalytics)}
+                    className="flex items-center gap-1 text-sm text-gray-400 transition-colors hover:text-red-400"
+                  >
+                    <EyeIcon className="w-4 h-4" />
+                    {showAnalytics ? "Hide Analytics" : "Show Analytics"}
+                  </button>
+                )}
+              </div>
+
+              {/* Analytics Section */}
+              <AnimatePresence>
+                {showAnalytics && totalVotes > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="p-5 mb-6 overflow-hidden border border-gray-800 rounded-2xl bg-gradient-to-br from-gray-900 to-black"
+                  >
+                    <h3 className="mb-4 text-lg font-semibold text-white">
+                      Vote Distribution Analysis
+                    </h3>
+
+                    {/* Bar Chart */}
+                    <div className="mb-6 space-y-3">
+                      {chartData.map((item, idx) => (
+                        <div key={idx} className="group">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{
+                                  backgroundColor:
+                                    idx === 0
+                                      ? "#EF4444"
+                                      : idx === 1
+                                        ? "#F59E0B"
+                                        : "#3B82F6",
+                                }}
+                              />
+                              <span className="text-sm font-medium text-white">
+                                {item.name}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-white">
+                                {item.votes.toLocaleString()}
+                              </span>
+                              <span className="text-xs text-gray-400">
+                                ({item.percentage.toFixed(1)}%)
+                              </span>
+                            </div>
+                          </div>
+                          <div className="relative w-full h-8 overflow-hidden bg-gray-800 rounded-lg">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{
+                                width: `${(item.votes / maxVotes) * 100}%`,
+                              }}
+                              transition={{ duration: 0.5, delay: idx * 0.1 }}
+                              className="absolute inset-y-0 left-0 flex items-center justify-end px-2 transition-all rounded-lg"
+                              style={{
+                                width: `${(item.votes / maxVotes) * 100}%`,
+                                background: `linear-gradient(90deg, ${idx === 0 ? "#EF4444" : idx === 1 ? "#F59E0B" : "#3B82F6"}80, ${idx === 0 ? "#EF4444" : idx === 1 ? "#F59E0B" : "#3B82F6"})`,
+                              }}
+                            >
+                              <span className="text-xs font-bold text-white drop-shadow-lg">
+                                {item.percentage.toFixed(1)}%
+                              </span>
+                            </motion.div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Winners Section */}
+                    {totalVotes > 0 && (
+                      <div className="p-4 border rounded-xl bg-gradient-to-r from-yellow-500/10 to-amber-500/10 border-yellow-500/20">
+                        <div className="flex items-center gap-2 mb-3">
+                          <TrophyIcon className="w-5 h-5 text-yellow-500" />
+                          <h4 className="font-semibold text-white">
+                            Current Leaders
+                          </h4>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between p-2 rounded-lg bg-white/5">
+                            <div className="flex items-center gap-2">
+                              <span className="text-2xl">🥇</span>
+                              <div>
+                                <p className="font-medium text-white">
+                                  {winner.name}
+                                </p>
+                                <p className="text-xs text-gray-400">
+                                  {winner.description || "No description"}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-lg font-bold text-yellow-500">
+                                {winner.voteCount} votes
+                              </p>
+                              <p className="text-xs text-gray-400">
+                                {(
+                                  (winner.voteCount / totalVotes) *
+                                  100
+                                ).toFixed(1)}
+                                %
+                              </p>
+                            </div>
+                          </div>
+                          {runnerUp && (
+                            <div className="flex items-center justify-between p-2 rounded-lg bg-white/5">
+                              <div className="flex items-center gap-2">
+                                <span className="text-2xl">🥈</span>
+                                <div>
+                                  <p className="font-medium text-white">
+                                    {runnerUp.name}
+                                  </p>
+                                  <p className="text-xs text-gray-400">
+                                    {runnerUp.description || "No description"}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-lg font-bold text-gray-400">
+                                  {runnerUp.voteCount} votes
+                                </p>
+                                <p className="text-xs text-gray-400">
+                                  {(
+                                    (runnerUp.voteCount / totalVotes) *
+                                    100
+                                  ).toFixed(1)}
+                                  %
+                                </p>
+                              </div>
+                            </div>
                           )}
                         </div>
-                      )}
-                      {hasVoted && isSelected && (
-                        <CheckCircleIcon className="w-5 h-5 text-green-500" />
-                      )}
-                      <h3 className="text-lg font-semibold text-white">
-                        {candidate.name}
-                      </h3>
-                      {hasVoted && isSelected && (
-                        <span className="px-2 py-0.5 text-xs font-medium text-green-500 bg-green-500/10 rounded-full">
-                          Your Vote
-                        </span>
-                      )}
-                    </div>
-                    {candidate.description && (
-                      <p className="text-sm text-gray-400">
-                        {candidate.description}
-                      </p>
+                      </div>
                     )}
-                  </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-white">
-                      {candidate.voteCount}
+              {/* Candidates List */}
+              {poll.candidates.map((candidate, idx) => {
+                const percentage = getVotePercentage(candidate._id);
+                const isSelected = selectedCandidate === candidate._id;
+                const hasVoted = poll.userVoted || false;
+                const isWinner = winner?._id === candidate._id;
+
+                return (
+                  <motion.div
+                    key={candidate._id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    whileHover={{ scale: 1.01 }}
+                    onMouseEnter={() => setHoveredCandidate(candidate._id)}
+                    onMouseLeave={() => setHoveredCandidate(null)}
+                    className={`relative overflow-hidden p-6 transition-all border rounded-xl ${
+                      hasVoted && isSelected
+                        ? "border-red-500 bg-gradient-to-r from-red-500/20 to-red-600/20 shadow-lg shadow-red-500/10"
+                        : "border-gray-800 bg-gradient-to-br from-gray-900 to-black"
+                    } hover:border-red-500/50 hover:shadow-xl transition-all duration-300`}
+                  >
+                    <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center gap-3 mb-2">
+                          {!hasVoted && isActive && (
+                            <div
+                              onClick={() => handleVote(candidate._id)}
+                              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center cursor-pointer transition-all ${
+                                isSelected
+                                  ? "border-red-500 bg-red-500/20"
+                                  : "border-gray-500 hover:border-red-400"
+                              }`}
+                            >
+                              {isSelected && (
+                                <div className="w-2 h-2 bg-red-500 rounded-full" />
+                              )}
+                            </div>
+                          )}
+                          {hasVoted && isSelected && (
+                            <CheckCircleIcon className="w-5 h-5 text-green-500" />
+                          )}
+                          <h3 className="text-lg font-semibold text-white">
+                            {candidate.name}
+                          </h3>
+                          {hasVoted && isSelected && (
+                            <span className="px-2 py-0.5 text-xs font-medium text-green-500 bg-green-500/10 rounded-full animate-pulse">
+                              Your Vote
+                            </span>
+                          )}
+                          {isWinner && !isSelected && totalVotes > 0 && (
+                            <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-yellow-500 bg-yellow-500/10 rounded-full">
+                              <TrophyIcon className="w-3 h-3" />
+                              Leading
+                            </span>
+                          )}
+                        </div>
+                        {candidate.description && (
+                          <p className="text-sm text-gray-400">
+                            {candidate.description}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-white">
+                          {candidate.voteCount}
+                        </div>
+                        <div className="text-sm text-gray-400">
+                          {percentage.toFixed(1)}%
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-400">
-                      {percentage.toFixed(1)}%
+
+                    <div className="mt-4">
+                      <div className="w-full h-2 overflow-hidden bg-gray-800 rounded-full">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${percentage}%` }}
+                          transition={{ duration: 0.5, delay: idx * 0.1 }}
+                          className="h-full rounded-full bg-gradient-to-r from-red-500 to-red-600"
+                        />
+                      </div>
                     </div>
+
+                    {/* Hover Glow Effect */}
+                    {hoveredCandidate === candidate._id && (
+                      <div className="absolute inset-0 pointer-events-none rounded-xl bg-gradient-to-r from-red-500/5 to-transparent" />
+                    )}
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+
+            {/* Vote Info Messages */}
+            {poll.userVoted && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 mt-6 text-center border rounded-lg bg-green-500/10 border-green-500/30"
+              >
+                <CheckCircleIcon className="inline-block w-5 h-5 mr-2 text-green-500" />
+                <span className="text-green-500">
+                  Thank you for voting! Your voice matters.
+                </span>
+              </motion.div>
+            )}
+
+            {!isActive && !poll.userVoted && (
+              <div className="p-4 mt-6 text-center border rounded-lg bg-gray-500/10 border-gray-500/30">
+                <ClockIcon className="inline-block w-5 h-5 mr-2 text-gray-500" />
+                <span className="text-gray-500">
+                  This poll has ended. Check out active polls!
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Right Sidebar - Info & Stats */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            className="space-y-6"
+          >
+            {/* Poll Info Card */}
+            <div className="p-6 border border-gray-800 rounded-2xl bg-gradient-to-br from-gray-900 to-black">
+              <h3 className="mb-4 text-lg font-semibold text-white">
+                Poll Information
+              </h3>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <CalendarIcon className="w-4 h-4" />
+                    <span className="text-sm">Created</span>
                   </div>
+                  <span className="text-sm text-white">
+                    {poll.createdAt
+                      ? new Date(poll.createdAt).toLocaleDateString()
+                      : "N/A"}
+                  </span>
                 </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <ClockIcon className="w-4 h-4" />
+                    <span className="text-sm">End Date</span>
+                  </div>
+                  <span className="text-sm text-white">
+                    {new Date(poll.endDate).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <TagIcon className="w-4 h-4" />
+                    <span className="text-sm">Category</span>
+                  </div>
+                  <span className="text-sm text-white capitalize">
+                    {poll.category}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <UserGroupIcon className="w-4 h-4" />
+                    <span className="text-sm">Total Participants</span>
+                  </div>
+                  <span className="text-sm text-white">
+                    {totalVotes.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </div>
 
-                <div className="mt-4">
-                  <div className="w-full h-2 overflow-hidden bg-gray-800 rounded-full">
-                    <div
-                      className="h-full transition-all duration-500 rounded-full bg-gradient-to-r from-red-500 to-red-600"
-                      style={{ width: `${percentage}%` }}
-                    />
+            {/* Engagement Stats */}
+            {totalVotes > 0 && (
+              <div className="p-6 border border-gray-800 rounded-2xl bg-gradient-to-br from-gray-900 to-black">
+                <h3 className="flex items-center gap-2 mb-4 text-lg font-semibold text-white">
+                  <HeartIcon className="w-5 h-5 text-red-400" />
+                  Engagement Stats
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm text-gray-400">
+                        Vote Distribution
+                      </span>
+                      <span className="text-sm text-white">
+                        {Math.max(
+                          ...poll.candidates.map((c) => c.voteCount),
+                        ).toLocaleString()}{" "}
+                        max
+                      </span>
+                    </div>
+                    <div className="w-full h-2 overflow-hidden bg-gray-800 rounded-full">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-red-500 to-red-600"
+                        style={{
+                          width: `${(Math.max(...poll.candidates.map((c) => c.voteCount)) / totalVotes) * 100}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm text-gray-400">
+                        Competition Level
+                      </span>
+                      <span className="text-sm text-white">
+                        {winner.voteCount / totalVotes > 0.5
+                          ? "High"
+                          : winner.voteCount / totalVotes > 0.3
+                            ? "Medium"
+                            : "Low"}
+                      </span>
+                    </div>
+                    <div className="w-full h-2 overflow-hidden bg-gray-800 rounded-full">
+                      <div
+                        className="h-full rounded-full bg-gradient-to-r from-yellow-500 to-orange-500"
+                        style={{
+                          width: `${(winner.voteCount / totalVotes) * 100}%`,
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
-            );
-          })}
+            )}
+
+            {/* Call to Action */}
+            {isActive && !poll.userVoted && (
+              <div className="p-6 text-center border border-red-500/30 rounded-2xl bg-gradient-to-r from-red-500/10 to-red-600/10">
+                <FireIcon className="w-8 h-8 mx-auto mb-3 text-red-400 animate-pulse" />
+                <h3 className="mb-2 text-lg font-semibold text-white">
+                  Cast Your Vote!
+                </h3>
+                <p className="mb-4 text-sm text-gray-400">
+                  Your vote matters. Choose your favorite candidate above.
+                </p>
+                <div className="text-xs text-gray-500">
+                  ⏰ {timeLeft} remaining
+                </div>
+              </div>
+            )}
+
+            {/* Result Summary */}
+            {totalVotes > 0 && !isActive && (
+              <div className="p-6 text-center border border-green-500/30 rounded-2xl bg-gradient-to-r from-green-500/10 to-emerald-500/10">
+                <TrophyIcon className="w-8 h-8 mx-auto mb-3 text-yellow-500" />
+                <h3 className="mb-2 text-lg font-semibold text-white">
+                  Poll Completed
+                </h3>
+                <p className="text-sm text-gray-400">
+                  Winner:{" "}
+                  <span className="font-bold text-yellow-500">
+                    {winner.name}
+                  </span>
+                </p>
+                <p className="mt-2 text-xs text-gray-500">
+                  with {winner.voteCount} votes (
+                  {((winner.voteCount / totalVotes) * 100).toFixed(1)}%)
+                </p>
+              </div>
+            )}
+          </motion.div>
         </div>
-
-        {/* Vote Info */}
-        {poll.userVoted && (
-          <div className="p-4 mt-6 text-center border rounded-lg bg-green-500/10 border-green-500/30">
-            <CheckCircleIcon className="inline-block w-5 h-5 mr-2 text-green-500" />
-            <span className="text-green-500">Thank you for voting!</span>
-          </div>
-        )}
-
-        {!isActive && !poll.userVoted && (
-          <div className="p-4 mt-6 text-center border rounded-lg bg-gray-500/10 border-gray-500/30">
-            <ClockIcon className="inline-block w-5 h-5 mr-2 text-gray-500" />
-            <span className="text-gray-500">This poll has ended</span>
-          </div>
-        )}
       </div>
 
       <LoginModal

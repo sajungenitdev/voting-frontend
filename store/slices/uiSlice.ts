@@ -1,19 +1,19 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-
-interface UIState {
-  isSidebarOpen: boolean
-  isModalOpen: boolean
-  modalType: string | null
-  modalData: any
-  theme: 'dark' | 'light'
-  notifications: Notification[]
-}
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface Notification {
-  id: string
-  message: string
-  type: 'success' | 'error' | 'info' | 'warning'
-  duration?: number
+  id: string;
+  message: string;
+  type: "success" | "error" | "info" | "warning";
+  duration?: number;
+}
+
+interface UIState {
+  isSidebarOpen: boolean;
+  isModalOpen: boolean;
+  modalType: string | null;
+  modalData: any;
+  theme: "dark" | "light";
+  notifications: Notification[];
 }
 
 const initialState: UIState = {
@@ -21,42 +21,47 @@ const initialState: UIState = {
   isModalOpen: false,
   modalType: null,
   modalData: null,
-  theme: 'dark',
+  theme: "dark",
   notifications: [],
-}
+};
 
 const uiSlice = createSlice({
-  name: 'ui',
+  name: "ui",
   initialState,
   reducers: {
     toggleSidebar: (state) => {
-      state.isSidebarOpen = !state.isSidebarOpen
+      state.isSidebarOpen = !state.isSidebarOpen;
     },
     openModal: (state, action: PayloadAction<{ type: string; data?: any }>) => {
-      state.isModalOpen = true
-      state.modalType = action.payload.type
-      state.modalData = action.payload.data || null
+      state.isModalOpen = true;
+      state.modalType = action.payload.type;
+      state.modalData = action.payload.data || null;
     },
     closeModal: (state) => {
-      state.isModalOpen = false
-      state.modalType = null
-      state.modalData = null
+      state.isModalOpen = false;
+      state.modalType = null;
+      state.modalData = null;
     },
     toggleTheme: (state) => {
-      state.theme = state.theme === 'dark' ? 'light' : 'dark'
+      state.theme = state.theme === "dark" ? "light" : "dark";
     },
-    addNotification: (state, action: PayloadAction<Omit<Notification, 'id'>>) => {
-      const id = Date.now().toString()
-      state.notifications.push({ ...action.payload, id })
+    addNotification: (
+      state,
+      action: PayloadAction<Omit<Notification, "id">>,
+    ) => {
+      const id = Date.now().toString();
+      state.notifications.push({ ...action.payload, id });
     },
     removeNotification: (state, action: PayloadAction<string>) => {
-      state.notifications = state.notifications.filter(n => n.id !== action.payload)
+      state.notifications = state.notifications.filter(
+        (n) => n.id !== action.payload,
+      );
     },
     clearNotifications: (state) => {
-      state.notifications = []
+      state.notifications = [];
     },
   },
-})
+});
 
 export const {
   toggleSidebar,
@@ -66,6 +71,6 @@ export const {
   addNotification,
   removeNotification,
   clearNotifications,
-} = uiSlice.actions
+} = uiSlice.actions;
 
-export default uiSlice.reducer
+export default uiSlice.reducer;
