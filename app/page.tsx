@@ -4,22 +4,13 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchPolls } from "@/store/slices/pollSlice";
 import { fetchCategories } from "@/store/slices/categorySlice";
-import type { Poll } from "@/store/slices/pollSlice"; // ✅ Import the type from pollSlice
+import type { Poll } from "@/store/slices/pollSlice";
+import type { Category } from "@/store/slices/categorySlice"; // ✅ Import Category from slice
 import CategoryFilter from "@/components/home/CategoryFilter";
 import PollCard from "@/components/polls/PollCard";
 import Sidebar from "@/components/home/Sidebar";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import Hero from "@/components/home/Hero";
-
-// ✅ Remove the local Poll interface - use the imported one instead
-
-interface Category {
-  _id: string;
-  name: string;
-  displayName: string;
-  icon?: string;
-  isActive: boolean;
-}
 
 export default function HomePage() {
   const dispatch = useAppDispatch();
@@ -62,6 +53,7 @@ export default function HomePage() {
       if (categoryName) {
         counts[categoryName] = (counts[categoryName] || 0) + 1;
 
+        // ✅ Use imported Category type
         const category = categories.find(
           (cat: Category) => cat.name === categoryName,
         );
