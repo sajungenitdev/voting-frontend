@@ -336,51 +336,46 @@ export default function B2BDashboardPage() {
   const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [profileRes, subRes, requestsRes, apiKeysRes] = await Promise.all([
-        api
-          .get("/b2b/profile")
-          .then((res) => ({ data: res.data, error: null, status: res.status })),
-        api
-          .get("/b2b/my-subscription")
-          .then((res) => ({ data: res.data, error: null, status: res.status })),
-        api
-          .get("/b2b/my-requests")
-          .then((res) => ({ data: res.data, error: null, status: res.status })),
-        api
-          .get("/b2b/api-keys")
-          .then((res) => ({ data: res.data, error: null, status: res.status })),
-      ]).catch((err) => ({
-        profile: { data: null, error: err, status: err.response?.status },
-        sub: { data: null, error: err, status: err.response?.status },
-        requests: { data: null, error: err, status: err.response?.status },
-        apiKeys: { data: null, error: err, status: err.response?.status },
-      }));
+      const results = await Promise.allSettled([
+        api.get("/b2b/profile"),
+        api.get("/b2b/my-subscription"),
+        api.get("/b2b/my-requests"),
+        api.get("/b2b/api-keys"),
+      ]);
 
-      // Safely extract results
-      const profileResult = profileRes as ApiResponse<any>;
-      const subResult = subRes as ApiResponse<any>;
-      const requestsResult = requestsRes as ApiResponse<any>;
-      const apiKeysResult = apiKeysRes as ApiResponse<any>;
+      // Helper to extract data
+      const getData = (result: PromiseSettledResult<any>) => {
+        if (result.status === "fulfilled" && result.value.data?.success) {
+          return result.value.data;
+        }
+        return null;
+      };
 
-      // Check if user is not authenticated for B2B (but might be authenticated for regular)
-      if (
-        profileResult.status === 401 ||
-        profileResult.error?.response?.status === 401
-      ) {
-        console.log(
-          "B2B access not available - showing empty state instead of redirect",
-        );
+      const profileData = getData(results[0]);
+      const subData = getData(results[1]);
+      const requestsData = getData(results[2]);
+      const apiKeysData = getData(results[3]);
+
+      // Check for 401 unauthorized
+      const hasUnauthorized = results.some(
+        (r) =>
+          r.status === "rejected" &&
+          (r.reason as any)?.response?.status === 401,
+      );
+
+      if (hasUnauthorized) {
+        console.log("B2B access not available - showing empty state");
         setIsLoading(false);
         return;
       }
 
-      if (profileResult.data?.success) setUser(profileResult.data.data.user);
+      if (profileData) setUser(profileData.data.user);
 
       let approvedCategoriesList: string[] = [];
       let approvedReqs: Request[] = [];
 
-      if (requestsResult.data?.success) {
-        const requestsList = requestsResult.data.data.requests || [];
+      if (requestsData) {
+        const requestsList = requestsData.data.requests || [];
         setRequests(requestsList);
         approvedReqs = requestsList.filter(
           (r: Request) => r.status === "approved",
@@ -402,21 +397,22 @@ export default function B2BDashboardPage() {
         }));
       }
 
-      if (subResult.data?.success && subResult.data.data.hasSubscription) {
-        const subData = subResult.data.data;
+      if (subData?.data.hasSubscription) {
+        const subResult = subData.data;
         const purchasedCats =
-          subData.purchasedCategories?.length > 0
-            ? subData.purchasedCategories
+          subResult.purchasedCategories?.length > 0
+            ? subResult.purchasedCategories
             : approvedCategoriesList;
         setSubscription({
-          ...subData,
-          maxCategories: subData.maxCategories || getTierLimit(subData.tier),
+          ...subResult,
+          maxCategories:
+            subResult.maxCategories || getTierLimit(subResult.tier),
         });
         setPurchasedCategories(purchasedCats);
       }
 
-      if (apiKeysResult.data?.success) {
-        const keys = apiKeysResult.data.data.apiKeys || [];
+      if (apiKeysData) {
+        const keys = apiKeysData.data.apiKeys || [];
         setApiKeys(keys);
         setStats((prev) => ({ ...prev, apiKeysCount: keys.length }));
       }
