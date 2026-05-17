@@ -327,52 +327,60 @@ export default function B2BDashboardPage() {
 
   // ==================== FETCH DATA ====================
 
+  type ApiResponse<T> = {
+    data?: T;
+    error?: any;
+    status?: number;
+  };
+
   const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
     try {
       const [profileRes, subRes, requestsRes, apiKeysRes] = await Promise.all([
-        api.get("/b2b/profile").catch((err) => ({
-          data: { success: false },
-          error: err,
-          status: err.response?.status,
-        })),
-        api.get("/b2b/my-subscription").catch((err) => ({
-          data: { success: false },
-          error: err,
-          status: err.response?.status,
-        })),
-        api.get("/b2b/my-requests").catch((err) => ({
-          data: { success: false },
-          error: err,
-          status: err.response?.status,
-        })),
-        api.get("/b2b/api-keys").catch((err) => ({
-          data: { success: false },
-          error: err,
-          status: err.response?.status,
-        })),
-      ]);
+        api
+          .get("/b2b/profile")
+          .then((res) => ({ data: res.data, error: null, status: res.status })),
+        api
+          .get("/b2b/my-subscription")
+          .then((res) => ({ data: res.data, error: null, status: res.status })),
+        api
+          .get("/b2b/my-requests")
+          .then((res) => ({ data: res.data, error: null, status: res.status })),
+        api
+          .get("/b2b/api-keys")
+          .then((res) => ({ data: res.data, error: null, status: res.status })),
+      ]).catch((err) => ({
+        profile: { data: null, error: err, status: err.response?.status },
+        sub: { data: null, error: err, status: err.response?.status },
+        requests: { data: null, error: err, status: err.response?.status },
+        apiKeys: { data: null, error: err, status: err.response?.status },
+      }));
+
+      // Safely extract results
+      const profileResult = profileRes as ApiResponse<any>;
+      const subResult = subRes as ApiResponse<any>;
+      const requestsResult = requestsRes as ApiResponse<any>;
+      const apiKeysResult = apiKeysRes as ApiResponse<any>;
 
       // Check if user is not authenticated for B2B (but might be authenticated for regular)
       if (
-        profileRes.status === 401 ||
-        profileRes.error?.response?.status === 401
+        profileResult.status === 401 ||
+        profileResult.error?.response?.status === 401
       ) {
         console.log(
           "B2B access not available - showing empty state instead of redirect",
         );
-        // Don't redirect to login, just show empty state
         setIsLoading(false);
         return;
       }
 
-      if (profileRes.data?.success) setUser(profileRes.data.data.user);
+      if (profileResult.data?.success) setUser(profileResult.data.data.user);
 
       let approvedCategoriesList: string[] = [];
       let approvedReqs: Request[] = [];
 
-      if (requestsRes.data?.success) {
-        const requestsList = requestsRes.data.data.requests || [];
+      if (requestsResult.data?.success) {
+        const requestsList = requestsResult.data.data.requests || [];
         setRequests(requestsList);
         approvedReqs = requestsList.filter(
           (r: Request) => r.status === "approved",
@@ -394,8 +402,8 @@ export default function B2BDashboardPage() {
         }));
       }
 
-      if (subRes.data?.success && subRes.data.data.hasSubscription) {
-        const subData = subRes.data.data;
+      if (subResult.data?.success && subResult.data.data.hasSubscription) {
+        const subData = subResult.data.data;
         const purchasedCats =
           subData.purchasedCategories?.length > 0
             ? subData.purchasedCategories
@@ -407,14 +415,13 @@ export default function B2BDashboardPage() {
         setPurchasedCategories(purchasedCats);
       }
 
-      if (apiKeysRes.data?.success) {
-        const keys = apiKeysRes.data.data.apiKeys || [];
+      if (apiKeysResult.data?.success) {
+        const keys = apiKeysResult.data.data.apiKeys || [];
         setApiKeys(keys);
         setStats((prev) => ({ ...prev, apiKeysCount: keys.length }));
       }
     } catch (error: any) {
       console.error("Failed to fetch dashboard data:", error);
-      // Don't show toast for 401 errors - just show empty state
       if (error.response?.status !== 401) {
         toast.error("Failed to load dashboard data");
       }
@@ -423,37 +430,7 @@ export default function B2BDashboardPage() {
     }
   }, []);
 
-  // At the top of B2BDashboardPage component, add this early return
-  useEffect(() => {
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
-      try {
-        const userData = JSON.parse(userStr);
-        console.log("Current user role:", userData.role);
-
-        // If not B2B user, show message
-        if (userData.role !== "b2b_buyer" && userData.role !== "admin") {
-          toast.error(
-            "You don't have B2B access. Please submit a request first.",
-          );
-          router.push("/b2b/request");
-          return;
-        }
-      } catch (error) {
-        console.error("Error parsing user:", error);
-      }
-    }
-
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    fetchDashboardData();
-  }, []);
-
-  // ✅ FIXED: Don't redirect to login for B2B 401 errors
+  // ✅ MERGE these two into ONE useEffect
   useEffect(() => {
     const checkAuthAndFetch = async () => {
       const token = localStorage.getItem("accessToken");
@@ -463,27 +440,27 @@ export default function B2BDashboardPage() {
       console.log("Token exists:", !!token);
       console.log("User exists:", !!userStr);
 
+      if (!token && !isAuthenticated) {
+        router.push("/login");
+        return;
+      }
+
       if (userStr) {
         try {
           const userData = JSON.parse(userStr);
           console.log("User role:", userData.role);
           console.log("User email:", userData.email);
 
-          // If user is logged in but not B2B, just show empty state, don't redirect
           if (userData.role !== "b2b_buyer" && userData.role !== "admin") {
-            console.log("User is not B2B user - showing empty state");
-            setIsLoading(false);
+            toast.error(
+              "You don't have B2B access. Please submit a request first.",
+            );
+            router.push("/b2b/request");
             return;
           }
         } catch (error) {
-          console.error("Error parsing user data:", error);
+          console.error("Error parsing user:", error);
         }
-      }
-
-      // Only redirect to login if no token at all
-      if (!token && !isAuthenticated) {
-        router.push("/login");
-        return;
       }
 
       await fetchDashboardData();
