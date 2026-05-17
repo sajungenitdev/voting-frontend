@@ -38,6 +38,8 @@ export interface Poll {
     allowComments?: boolean;
     isPrivate?: boolean;
   };
+  createdAt?: string;  // ✅ Add this line
+  updatedAt?: string;  // ✅ Add this line (optional)
 }
 
 interface PollsResponse {
