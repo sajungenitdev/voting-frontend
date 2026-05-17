@@ -327,65 +327,32 @@ export default function B2BDashboardPage() {
 
   // ==================== FETCH DATA ====================
 
-  type ApiResponse<T> = {
-    data?: T;
-    error?: any;
-    status?: number;
-  };
-
   const fetchDashboardData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const results = await Promise.allSettled([
+      const [profileRes, subRes, requestsRes, apiKeysRes] = await Promise.all([
         api.get("/b2b/profile"),
         api.get("/b2b/my-subscription"),
         api.get("/b2b/my-requests"),
         api.get("/b2b/api-keys"),
       ]);
 
-      // Helper to extract data
-      const getData = (result: PromiseSettledResult<any>) => {
-        if (result.status === "fulfilled" && result.value.data?.success) {
-          return result.value.data;
-        }
-        return null;
-      };
-
-      const profileData = getData(results[0]);
-      const subData = getData(results[1]);
-      const requestsData = getData(results[2]);
-      const apiKeysData = getData(results[3]);
-
-      // Check for 401 unauthorized
-      const hasUnauthorized = results.some(
-        (r) =>
-          r.status === "rejected" &&
-          (r.reason as any)?.response?.status === 401,
-      );
-
-      if (hasUnauthorized) {
-        console.log("B2B access not available - showing empty state");
-        setIsLoading(false);
-        return;
-      }
-
-      if (profileData) setUser(profileData.data.user);
+      if (profileRes.data?.success) setUser(profileRes.data.data.user);
 
       let approvedCategoriesList: string[] = [];
       let approvedReqs: Request[] = [];
 
-      if (requestsData) {
-        const requestsList = requestsData.data.requests || [];
+      if (requestsRes.data?.success) {
+        const requestsList = requestsRes.data.data.requests || [];
         setRequests(requestsList);
         approvedReqs = requestsList.filter(
           (r: Request) => r.status === "approved",
         );
         setApprovedRequests(approvedReqs);
-        approvedCategoriesList = [
-          ...new Set(
-            approvedReqs.flatMap((r: Request) => r.selectedCategories),
-          ),
-        ];
+        // Fix: Use Array.from() to convert Set to array for TypeScript compatibility
+        approvedCategoriesList = Array.from(
+          new Set(approvedReqs.flatMap((r: Request) => r.selectedCategories)),
+        );
         setStats((prev) => ({
           ...prev,
           totalRequests: requestsList.length,
@@ -397,44 +364,47 @@ export default function B2BDashboardPage() {
         }));
       }
 
-      if (subData?.data.hasSubscription) {
-        const subResult = subData.data;
+      if (subRes.data?.success && subRes.data.data.hasSubscription) {
+        const subData = subRes.data.data;
         const purchasedCats =
-          subResult.purchasedCategories?.length > 0
-            ? subResult.purchasedCategories
+          subData.purchasedCategories?.length > 0
+            ? subData.purchasedCategories
             : approvedCategoriesList;
         setSubscription({
-          ...subResult,
-          maxCategories:
-            subResult.maxCategories || getTierLimit(subResult.tier),
+          ...subData,
+          maxCategories: subData.maxCategories || getTierLimit(subData.tier),
         });
         setPurchasedCategories(purchasedCats);
       }
 
-      if (apiKeysData) {
-        const keys = apiKeysData.data.apiKeys || [];
+      if (apiKeysRes.data?.success) {
+        const keys = apiKeysRes.data.data.apiKeys || [];
         setApiKeys(keys);
         setStats((prev) => ({ ...prev, apiKeysCount: keys.length }));
       }
     } catch (error: any) {
       console.error("Failed to fetch dashboard data:", error);
-      if (error.response?.status !== 401) {
+      if (error.response?.status === 401) {
+        localStorage.removeItem("accessToken");
+        router.push("/login");
+      } else if (error.response?.status === 403) {
+        toast.error(
+          "You don't have B2B access. Please submit a request first.",
+        );
+        router.push("/b2b/request");
+      } else {
         toast.error("Failed to load dashboard data");
       }
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [router]);
 
-  // ✅ MERGE these two into ONE useEffect
+  // Check authentication and fetch data
   useEffect(() => {
     const checkAuthAndFetch = async () => {
       const token = localStorage.getItem("accessToken");
       const userStr = localStorage.getItem("user");
-
-      console.log("=== B2B Dashboard Debug ===");
-      console.log("Token exists:", !!token);
-      console.log("User exists:", !!userStr);
 
       if (!token && !isAuthenticated) {
         router.push("/login");
@@ -444,9 +414,6 @@ export default function B2BDashboardPage() {
       if (userStr) {
         try {
           const userData = JSON.parse(userStr);
-          console.log("User role:", userData.role);
-          console.log("User email:", userData.email);
-
           if (userData.role !== "b2b_buyer" && userData.role !== "admin") {
             toast.error(
               "You don't have B2B access. Please submit a request first.",
@@ -464,6 +431,7 @@ export default function B2BDashboardPage() {
 
     checkAuthAndFetch();
   }, [isAuthenticated, router, fetchDashboardData]);
+
   // ==================== API KEY HANDLERS ====================
 
   const handleGenerateApiKey = async () => {
@@ -897,8 +865,7 @@ export default function B2BDashboardPage() {
               )}
             </motion.div>
 
-            {/* NEW: Approved Data Access Section */}
-            {/* NEW: Approved Data Access Section */}
+            {/* Approved Data Access Section */}
             {approvedRequests.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
