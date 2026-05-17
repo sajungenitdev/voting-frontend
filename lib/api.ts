@@ -287,7 +287,7 @@ const API_BASE_URL: string =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api/v1";
 
 if (process.env.NODE_ENV === "development") {
-  console.log(`🔗 API Base URL: ${API_BASE_URL}`);
+  // console.log(`🔗 API Base URL: ${API_BASE_URL}`);
 }
 
 // ==================== AXIOS INSTANCE ====================

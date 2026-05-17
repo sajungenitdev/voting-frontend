@@ -11,7 +11,9 @@ import {
   ShieldCheckIcon,
   EnvelopeIcon,
 } from "@heroicons/react/24/outline";
+import { motion } from "framer-motion";
 import toast from "react-hot-toast";
+import GoogleOneTapLogin from "@/components/ui/GoogleOneTapLogin";
 
 // Particle logic from your Hero section
 function generateParticles(count = 20) {
@@ -36,6 +38,7 @@ export default function RegisterPage() {
   // Form & UI state
   const [step, setStep] = useState<"form" | "otp">("form");
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   // Data state
@@ -110,6 +113,18 @@ export default function RegisterPage() {
     }
   };
 
+  const handleGoogleSuccess = () => {
+    toast.success("Google login successful! Redirecting...");
+    setTimeout(() => {
+      router.push("/dashboard");
+    }, 1000);
+  };
+
+  const handleGoogleError = (error: string) => {
+    console.error("Google login error:", error);
+    toast.error(error || "Google login failed");
+  };
+
   return (
     <section className="relative flex items-center justify-center min-h-screen p-4 overflow-hidden bg-gradient-to-b from-black via-gray-900 to-black">
       {/* BACKGROUND ELEMENTS */}
@@ -135,110 +150,160 @@ export default function RegisterPage() {
       </div>
 
       {/* FORM CONTAINER */}
-      <div
-        className={`relative z-10 w-full max-w-md transition-all duration-1000 transform ${
-          isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
-        }`}
+      <motion.div
+        initial={{ opacity: 0, y: 50 }}
+        animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 50 }}
+        transition={{ duration: 0.8, type: "spring", damping: 20 }}
+        className="relative z-10 w-full max-w-md"
       >
         <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 mb-4 shadow-lg rounded-2xl bg-gradient-to-br from-red-500 to-red-700 shadow-red-500/20">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+            className="inline-flex items-center justify-center w-16 h-16 mb-4 shadow-lg rounded-2xl bg-gradient-to-br from-red-500 to-red-700 shadow-red-500/20"
+          >
             {step === "form" ? (
               <ShieldCheckIcon className="w-8 h-8 text-white" />
             ) : (
               <EnvelopeIcon className="w-8 h-8 text-white" />
             )}
-          </div>
-          <h1 className="text-4xl font-bold tracking-tight text-white">
+          </motion.div>
+          <motion.h1
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-4xl font-bold tracking-tight text-white"
+          >
             {step === "form" ? "Create Account" : "Verify Email"}
-          </h1>
-          <p className="mt-2 text-gray-400">
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="mt-2 text-gray-400"
+          >
             {step === "form"
               ? "Join the future of secure voting"
               : `Enter code sent to ${email}`}
-          </p>
+          </motion.p>
         </div>
 
-        <div className="p-8 border shadow-2xl backdrop-blur-xl bg-white/5 border-white/10 rounded-3xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="p-8 border shadow-2xl backdrop-blur-xl bg-white/5 border-white/10 rounded-3xl"
+        >
           {step === "form" ? (
             /* REGISTRATION FORM */
-            <form onSubmit={handleRegister} className="space-y-5">
-              <div className="space-y-1">
-                <input
-                  type="text"
-                  placeholder="Full Name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 text-white transition-all border outline-none bg-white/5 border-white/10 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                  required
+            <>
+              {/* Google Login Button */}
+              <div className="mb-6">
+                <GoogleOneTapLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  onLoadingChange={setIsGoogleLoading}
+                  buttonText="Sign up with Google"
+                  className="w-full"
                 />
+                
+                <div className="relative my-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-white/10" />
+                  </div>
+                  <div className="relative flex justify-center text-xs">
+                    <span className="px-3 text-gray-500 bg-transparent backdrop-blur-sm">
+                      OR
+                    </span>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-1">
-                <input
-                  type="email"
-                  placeholder="Email Address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-3 text-white transition-all border outline-none bg-white/5 border-white/10 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                  required
-                />
-              </div>
-
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-3 text-white transition-all border outline-none bg-white/5 border-white/10 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute text-gray-400 -translate-y-1/2 right-3 top-1/2 hover:text-white"
-                >
-                  {showPassword ? (
-                    <EyeSlashIcon className="w-5 h-5" />
-                  ) : (
-                    <EyeIcon className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-
-              <div className="space-y-2">
-                <label className="flex items-start gap-3 cursor-pointer group">
+              <form onSubmit={handleRegister} className="space-y-5">
+                <div className="space-y-1">
                   <input
-                    type="checkbox"
-                    checked={acceptTerms}
-                    onChange={(e) => {
-                      setAcceptTerms(e.target.checked);
-                      if (e.target.checked) setTermsError("");
-                    }}
-                    className="w-5 h-5 mt-0.5 rounded border-white/10 bg-white/5 text-red-600 focus:ring-red-500 focus:ring-offset-0"
+                    type="text"
+                    placeholder="Full Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full px-4 py-3 text-white transition-all border outline-none bg-white/5 border-white/10 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                    disabled={isLoading || isGoogleLoading}
+                    required
                   />
-                  <span className="text-sm text-gray-400 transition-colors group-hover:text-gray-300">
-                    I agree to the <span className="text-red-500">Terms</span> &{" "}
-                    <span className="text-red-500">Privacy Policy</span>
-                  </span>
-                </label>
-                {termsError && (
-                  <p className="text-xs text-red-500 animate-pulse">
-                    {termsError}
-                  </p>
-                )}
-              </div>
+                </div>
 
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-4 font-bold text-white bg-red-600 rounded-xl hover:bg-red-500 shadow-lg shadow-red-600/20 active:scale-[0.98] transition-all disabled:opacity-50"
-              >
-                {isLoading
-                  ? "Generating Secure Account..."
-                  : "Create Free Account"}
-              </button>
-            </form>
+                <div className="space-y-1">
+                  <input
+                    type="email"
+                    placeholder="Email Address"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full px-4 py-3 text-white transition-all border outline-none bg-white/5 border-white/10 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                    disabled={isLoading || isGoogleLoading}
+                    required
+                  />
+                </div>
+
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full px-4 py-3 text-white transition-all border outline-none bg-white/5 border-white/10 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                    disabled={isLoading || isGoogleLoading}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute text-gray-400 -translate-y-1/2 right-3 top-1/2 hover:text-white"
+                    disabled={isLoading || isGoogleLoading}
+                  >
+                    {showPassword ? (
+                      <EyeSlashIcon className="w-5 h-5" />
+                    ) : (
+                      <EyeIcon className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="flex items-start gap-3 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={acceptTerms}
+                      onChange={(e) => {
+                        setAcceptTerms(e.target.checked);
+                        if (e.target.checked) setTermsError("");
+                      }}
+                      className="w-5 h-5 mt-0.5 rounded border-white/10 bg-white/5 text-red-600 focus:ring-red-500 focus:ring-offset-0"
+                      disabled={isLoading || isGoogleLoading}
+                    />
+                    <span className="text-sm text-gray-400 transition-colors group-hover:text-gray-300">
+                      I agree to the <span className="text-red-500">Terms</span> &{" "}
+                      <span className="text-red-500">Privacy Policy</span>
+                    </span>
+                  </label>
+                  {termsError && (
+                    <p className="text-xs text-red-500 animate-pulse">
+                      {termsError}
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading || isGoogleLoading}
+                  className="w-full py-4 font-bold text-white bg-red-600 rounded-xl hover:bg-red-500 shadow-lg shadow-red-600/20 active:scale-[0.98] transition-all disabled:opacity-50"
+                >
+                  {isLoading
+                    ? "Generating Secure Account..."
+                    : "Create Free Account"}
+                </button>
+              </form>
+            </>
           ) : (
             /* OTP FORM */
             <form onSubmit={handleVerifyOTP} className="space-y-6">
@@ -298,8 +363,8 @@ export default function RegisterPage() {
               </Link>
             </p>
           )}
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       <style jsx>{`
         @keyframes float {

@@ -1,3 +1,4 @@
+// app/(auth)/login/page.tsx
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -10,12 +11,10 @@ import {
   EyeSlashIcon,
   LockClosedIcon,
 } from "@heroicons/react/24/outline";
-import { FcGoogle } from "react-icons/fc";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import GoogleOneTapLogin from "@/components/ui/GoogleOneTapLogin";
 
-// Particle logic consistent with Hero/Register
 function generateParticles(count = 20) {
   return Array.from({ length: count }).map(() => ({
     id: crypto.randomUUID(),
@@ -31,13 +30,9 @@ export default function LoginPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
 
-  // UI State
   const [isVisible, setIsVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
-  // Form State
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -88,16 +83,11 @@ export default function LoginPage() {
 
   return (
     <section className="relative flex items-center justify-center min-h-screen p-4 overflow-hidden bg-gradient-to-b from-black via-gray-900 to-black">
-      {/* BACKGROUND ELEMENTS */}
+      {/* Background Elements */}
       <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
-        {/* Animated Glows */}
         <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-red-600/10 blur-[120px] animate-pulse" />
         <div className="absolute bottom-1/3 right-1/4 w-96 h-96 bg-red-500/10 blur-[120px] animate-pulse" />
-
-        {/* Grid Overlay */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
-
-        {/* Particles */}
         {particles.map((p) => (
           <div
             key={p.id}
@@ -114,7 +104,7 @@ export default function LoginPage() {
         ))}
       </div>
 
-      {/* LOGIN CARD */}
+      {/* Login Card */}
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 50 }}
@@ -154,12 +144,11 @@ export default function LoginPage() {
           transition={{ delay: 0.5 }}
           className="p-8 border shadow-2xl backdrop-blur-xl bg-white/5 border-white/10 rounded-3xl"
         >
-          {/* Google Login Button */}
+          {/* Google Login */}
           <div className="mb-6">
             <GoogleOneTapLogin
               onSuccess={handleGoogleSuccess}
               onError={handleGoogleError}
-              onLoadingChange={setIsGoogleLoading}
               buttonText="Continue with Google"
               className="w-full"
             />
@@ -185,7 +174,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 text-white transition-all border outline-none bg-white/5 border-white/10 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 placeholder:text-gray-500"
-                disabled={isLoading || isGoogleLoading}
+                disabled={isLoading}
                 required
               />
             </div>
@@ -197,14 +186,13 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 text-white transition-all border outline-none bg-white/5 border-white/10 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500 placeholder:text-gray-500"
-                disabled={isLoading || isGoogleLoading}
+                disabled={isLoading}
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute text-gray-400 transition-colors -translate-y-1/2 right-3 top-1/2 hover:text-white"
-                disabled={isLoading || isGoogleLoading}
               >
                 {showPassword ? (
                   <EyeSlashIcon className="w-5 h-5" />
@@ -237,7 +225,7 @@ export default function LoginPage() {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              disabled={isLoading || isGoogleLoading}
+              disabled={isLoading}
               className="w-full py-4 font-bold text-white bg-red-600 rounded-xl hover:bg-red-500 shadow-lg shadow-red-600/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? (
@@ -264,7 +252,7 @@ export default function LoginPage() {
           </div>
 
           {/* Demo Credentials */}
-          {/* <motion.div
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
@@ -278,7 +266,7 @@ export default function LoginPage() {
               <br />
               Password: newpassword123
             </p>
-          </motion.div> */}
+          </motion.div>
         </motion.div>
       </motion.div>
 
