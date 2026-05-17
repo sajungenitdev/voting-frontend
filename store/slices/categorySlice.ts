@@ -3,17 +3,16 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { categoryAPI } from "@/lib/api";
 
-// ✅ FIXED: Make isActive optional to match API response
 export interface Category {
   _id: string;
   name: string;
   displayName: string;
   icon?: string;
   color?: string;
-  isActive?: boolean; // Changed from required to optional
+  isActive?: boolean;
   pollCount?: number;
   description?: string;
-  order?: number;
+  order?: number; // ✅ Add order property
   createdAt?: string;
   updatedAt?: string;
 }
@@ -53,12 +52,20 @@ export const fetchCategories = createAsyncThunk(
       const response = await categoryAPI.getAll();
 
       if (response.success && response.data?.categories) {
-        // ✅ Fixed: Filter only active categories (treat undefined as active)
-        const activeCategories = response.data.categories
-          .filter((cat) => cat.isActive !== false) // undefined and true are both considered active
-          .sort((a, b) => (a.order || 0) - (b.order || 0));
+        // Filter only active categories
+        const activeCategories = response.data.categories.filter(
+          (cat) => cat.isActive !== false,
+        );
 
-        return activeCategories as Category[];
+        // ✅ Optional: Sort by order if order property exists, otherwise keep as is
+        // If order doesn't exist, we can skip sorting or sort by name
+        const sortedCategories = activeCategories.sort((a, b) => {
+          const orderA = (a as any).order || 0;
+          const orderB = (b as any).order || 0;
+          return orderA - orderB;
+        });
+
+        return sortedCategories as Category[];
       }
 
       return rejectWithValue(response.message || "Failed to fetch categories");
