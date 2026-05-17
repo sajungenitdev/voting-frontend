@@ -250,23 +250,6 @@ export default function LoginPage() {
               </Link>
             </p>
           </div>
-
-          {/* Demo Credentials */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="p-3 mt-6 rounded-lg bg-white/5"
-          >
-            <p className="text-xs text-center text-gray-500">
-              Testing Credentials
-            </p>
-            <p className="mt-1 text-xs text-center text-gray-400">
-              Email: dev3.ngenit@gmail.com
-              <br />
-              Password: newpassword123
-            </p>
-          </motion.div>
         </motion.div>
       </motion.div>
 

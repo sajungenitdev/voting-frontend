@@ -15,7 +15,7 @@ import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import GoogleOneTapLogin from "@/components/ui/GoogleOneTapLogin";
 
-// Particle logic from your Hero section
+// Particle logic
 function generateParticles(count = 20) {
   return Array.from({ length: count }).map(() => ({
     id: crypto.randomUUID(),
@@ -31,17 +31,11 @@ export default function RegisterPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
 
-  // Background state
   const particles = useMemo(() => generateParticles(15), []);
   const [isVisible, setIsVisible] = useState(false);
-
-  // Form & UI state
   const [step, setStep] = useState<"form" | "otp">("form");
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
-  // Data state
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -127,12 +121,11 @@ export default function RegisterPage() {
 
   return (
     <section className="relative flex items-center justify-center min-h-screen p-4 overflow-hidden bg-gradient-to-b from-black via-gray-900 to-black">
-      {/* BACKGROUND ELEMENTS */}
+      {/* Background Elements */}
       <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-red-600/10 blur-[120px] animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-red-500/10 blur-[120px] animate-pulse" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]" />
-
         {particles.map((p) => (
           <div
             key={p.id}
@@ -149,7 +142,7 @@ export default function RegisterPage() {
         ))}
       </div>
 
-      {/* FORM CONTAINER */}
+      {/* Form Container */}
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 50 }}
@@ -196,18 +189,16 @@ export default function RegisterPage() {
           className="p-8 border shadow-2xl backdrop-blur-xl bg-white/5 border-white/10 rounded-3xl"
         >
           {step === "form" ? (
-            /* REGISTRATION FORM */
             <>
               {/* Google Login Button */}
               <div className="mb-6">
                 <GoogleOneTapLogin
                   onSuccess={handleGoogleSuccess}
                   onError={handleGoogleError}
-                  onLoadingChange={setIsGoogleLoading}
                   buttonText="Sign up with Google"
                   className="w-full"
                 />
-                
+
                 <div className="relative my-6">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-white/10" />
@@ -221,26 +212,26 @@ export default function RegisterPage() {
               </div>
 
               <form onSubmit={handleRegister} className="space-y-5">
-                <div className="space-y-1">
+                <div>
                   <input
                     type="text"
                     placeholder="Full Name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="w-full px-4 py-3 text-white transition-all border outline-none bg-white/5 border-white/10 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                    disabled={isLoading || isGoogleLoading}
+                    disabled={isLoading}
                     required
                   />
                 </div>
 
-                <div className="space-y-1">
+                <div>
                   <input
                     type="email"
                     placeholder="Email Address"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full px-4 py-3 text-white transition-all border outline-none bg-white/5 border-white/10 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                    disabled={isLoading || isGoogleLoading}
+                    disabled={isLoading}
                     required
                   />
                 </div>
@@ -252,14 +243,13 @@ export default function RegisterPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="w-full px-4 py-3 text-white transition-all border outline-none bg-white/5 border-white/10 rounded-xl focus:border-red-500 focus:ring-1 focus:ring-red-500"
-                    disabled={isLoading || isGoogleLoading}
+                    disabled={isLoading}
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute text-gray-400 -translate-y-1/2 right-3 top-1/2 hover:text-white"
-                    disabled={isLoading || isGoogleLoading}
                   >
                     {showPassword ? (
                       <EyeSlashIcon className="w-5 h-5" />
@@ -278,12 +268,12 @@ export default function RegisterPage() {
                         setAcceptTerms(e.target.checked);
                         if (e.target.checked) setTermsError("");
                       }}
-                      className="w-5 h-5 mt-0.5 rounded border-white/10 bg-white/5 text-red-600 focus:ring-red-500 focus:ring-offset-0"
-                      disabled={isLoading || isGoogleLoading}
+                      className="w-5 h-5 mt-0.5 rounded border-white/10 bg-white/5 text-red-600 focus:ring-red-500"
+                      disabled={isLoading}
                     />
                     <span className="text-sm text-gray-400 transition-colors group-hover:text-gray-300">
-                      I agree to the <span className="text-red-500">Terms</span> &{" "}
-                      <span className="text-red-500">Privacy Policy</span>
+                      I agree to the <span className="text-red-500">Terms</span>{" "}
+                      & <span className="text-red-500">Privacy Policy</span>
                     </span>
                   </label>
                   {termsError && (
@@ -295,7 +285,7 @@ export default function RegisterPage() {
 
                 <button
                   type="submit"
-                  disabled={isLoading || isGoogleLoading}
+                  disabled={isLoading}
                   className="w-full py-4 font-bold text-white bg-red-600 rounded-xl hover:bg-red-500 shadow-lg shadow-red-600/20 active:scale-[0.98] transition-all disabled:opacity-50"
                 >
                   {isLoading
@@ -305,7 +295,6 @@ export default function RegisterPage() {
               </form>
             </>
           ) : (
-            /* OTP FORM */
             <form onSubmit={handleVerifyOTP} className="space-y-6">
               <input
                 type="text"

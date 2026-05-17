@@ -1,3 +1,5 @@
+// components/ui/GoogleOneTapLogin.tsx
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -14,6 +16,7 @@ declare global {
 interface GoogleOneTapLoginProps {
   onSuccess?: () => void;
   onError?: (error: string) => void;
+  onLoadingChange?: (isLoading: boolean) => void; // ✅ Add this
   buttonText?: string;
   className?: string;
 }
@@ -21,14 +24,19 @@ interface GoogleOneTapLoginProps {
 export default function GoogleOneTapLogin({
   onSuccess,
   onError,
+  onLoadingChange,
   buttonText = "Sign in with Google",
   className = "",
 }: GoogleOneTapLoginProps) {
   const buttonRef = useRef<HTMLDivElement>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Notify parent when loading state changes
   useEffect(() => {
-    // Load Google script
+    onLoadingChange?.(isLoading);
+  }, [isLoading, onLoadingChange]);
+
+  useEffect(() => {
     const script = document.createElement("script");
     script.src = "https://accounts.google.com/gsi/client";
     script.async = true;
@@ -82,11 +90,9 @@ export default function GoogleOneTapLogin({
       console.log("Backend response:", data);
 
       if (data.success) {
-        // Store auth data
         localStorage.setItem("accessToken", data.data.accessToken);
         localStorage.setItem("user", JSON.stringify(data.data.user));
 
-        // Dispatch events
         window.dispatchEvent(new Event("storage"));
         window.dispatchEvent(new CustomEvent("auth-storage-updated"));
 
@@ -95,7 +101,6 @@ export default function GoogleOneTapLogin({
         );
         onSuccess?.();
 
-        // Reload to update UI
         setTimeout(() => {
           window.location.href = "/";
         }, 1000);
