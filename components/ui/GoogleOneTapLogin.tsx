@@ -28,6 +28,7 @@ export default function GoogleOneTapLogin({
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    // Load Google script
     const script = document.createElement("script");
     script.src = "https://accounts.google.com/gsi/client";
     script.async = true;
@@ -81,31 +82,30 @@ export default function GoogleOneTapLogin({
       console.log("Backend response:", data);
 
       if (data.success) {
+        // Store auth data
         localStorage.setItem("accessToken", data.data.accessToken);
         localStorage.setItem("user", JSON.stringify(data.data.user));
 
-        // Dispatch storage event to notify other components
+        // Dispatch events
         window.dispatchEvent(new Event("storage"));
         window.dispatchEvent(new CustomEvent("auth-storage-updated"));
 
         toast.success(
           `Welcome ${data.data.user.name || data.data.user.email}!`,
         );
+        onSuccess?.();
 
-        // Call onSuccess before reload
-        if (onSuccess) onSuccess();
-
-        // Small delay to ensure storage event is processed
+        // Reload to update UI
         setTimeout(() => {
           window.location.href = "/";
-        }, 500);
+        }, 1000);
       } else {
         throw new Error(data.message || "Login failed");
       }
     } catch (err: any) {
       console.error("Login error:", err);
       toast.error(err.message || "Login failed");
-      if (onError) onError(err.message);
+      onError?.(err.message);
     } finally {
       setIsLoading(false);
     }

@@ -36,13 +36,13 @@ export default function Header() {
 
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "accessToken" || e.key === "user") {
-        console.log("Header: Storage changed, restoring session...");
+        // console.log("Header: Storage changed, restoring session...");
         dispatch(restoreSession());
       }
     };
 
     const handleAuthUpdate = () => {
-      console.log("Header: Auth update event received");
+      // console.log("Header: Auth update event received");
       dispatch(restoreSession());
     };
 
@@ -66,7 +66,7 @@ export default function Header() {
       userStr !== "undefined" &&
       !isAuthenticated
     ) {
-      console.log("Header: Found token but not authenticated, restoring...");
+      // console.log("Header: Found token but not authenticated, restoring...");
       dispatch(restoreSession());
     }
   }, [pathname, dispatch, isAuthenticated]);

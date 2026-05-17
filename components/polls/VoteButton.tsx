@@ -37,14 +37,14 @@ export default function VoteButton({
 
     // Prevent duplicate votes
     if (voted || hasVoted) {
-      console.log("Already voted - preventing duplicate");
+      // console.log("Already voted - preventing duplicate");
       return;
     }
 
     setIsVoting(true);
     try {
       const result = await dispatch(castVote({ pollId, candidateId })).unwrap();
-      console.log("Vote successful:", result);
+      // console.log("Vote successful:", result);
       setVoted(true);
 
       // Refresh polls to get updated data

@@ -109,7 +109,6 @@ export default function B2BDataPage() {
     setIsLoading(true);
     try {
       const response = await api.get("/b2b/data");
-      console.log("API Response:", response.data);
 
       if (response.data.success) {
         setData(response.data.data);

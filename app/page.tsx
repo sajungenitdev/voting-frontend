@@ -49,7 +49,6 @@ export default function HomePage() {
       params.category = selectedCategoryName;
     }
 
-    console.log("Fetching polls with params:", params);
     dispatch(fetchPolls(params));
   }, [dispatch, selectedCategoryName, refreshTrigger]);
 
@@ -74,7 +73,6 @@ export default function HomePage() {
 
     counts.all = polls.length;
 
-    console.log("Category Counts:", counts);
     setCategoryCounts(counts);
   }, [polls, categories]);
 
@@ -84,7 +82,6 @@ export default function HomePage() {
 
   const handleCategorySelect = useCallback(
     (categoryId: string) => {
-      console.log("Category selected - ID:", categoryId);
       setSelectedCategoryId(categoryId);
 
       if (categoryId === "") {
@@ -95,7 +92,6 @@ export default function HomePage() {
           (cat: Category) => cat._id === categoryId,
         );
         const categoryName = category?.name || "";
-        console.log("Category name for API:", categoryName);
         setSelectedCategoryName(categoryName);
         setDisplayLimit(10);
       }

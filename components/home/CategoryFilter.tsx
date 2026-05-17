@@ -72,13 +72,13 @@ function CategoryFilterComponent({
 
   // Debug logging
   useEffect(() => {
-    console.log("=== CategoryFilter Debug ===");
-    console.log("Selected Category ID:", selectedCategory);
-    console.log(
-      "Categories from API:",
-      categories.map((c) => ({ id: c._id, name: c.displayName })),
-    );
-    console.log("Category Counts:", categoryCounts);
+    // console.log("=== CategoryFilter Debug ===");
+    // console.log("Selected Category ID:", selectedCategory);
+    // console.log(
+    //   "Categories from API:",
+    //   categories.map((c) => ({ id: c._id, name: c.displayName })),
+    // );
+    // console.log("Category Counts:", categoryCounts);
   }, [selectedCategory, categories, categoryCounts]);
 
   if (isLoading) {
@@ -116,10 +116,10 @@ function CategoryFilterComponent({
   ];
 
   const handleCategorySelect = (categoryId: string) => {
-    console.log("=== Category Selected ===");
-    console.log("Category ID being sent:", categoryId);
-    console.log("Category ID type:", typeof categoryId);
-    console.log("Is All?", categoryId === "");
+    // console.log("=== Category Selected ===");
+    // console.log("Category ID being sent:", categoryId);
+    // console.log("Category ID type:", typeof categoryId);
+    // console.log("Is All?", categoryId === "");
 
     // Call the onSelect prop with the category ID
     onSelect(categoryId);

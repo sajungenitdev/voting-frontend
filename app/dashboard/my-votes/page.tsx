@@ -1,4 +1,3 @@
-// app/my-votes/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -150,7 +149,7 @@ export default function MyVotesPage() {
   return (
     <div className="min-h-screen pt-24 pb-12 bg-gradient-to-br from-black via-gray-900 to-black">
       <div className="px-4 mx-auto max-w-7xl">
-        {/* Header with Animation */}
+        {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -170,12 +169,7 @@ export default function MyVotesPage() {
         </motion.div>
 
         {/* Stats Cards */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid gap-4 mb-10 md:grid-cols-3"
-        >
+        <div className="grid gap-4 mb-10 md:grid-cols-3">
           {stats.map((stat, idx) => (
             <motion.div
               key={stat.label}
@@ -203,9 +197,9 @@ export default function MyVotesPage() {
               />
             </motion.div>
           ))}
-        </motion.div>
+        </div>
 
-        {/* Votes List */}
+        {/* Votes List - REMOVED AnimatePresence or fixed mode */}
         {isLoading ? (
           <div className="flex items-center justify-center py-20">
             <LoadingSpinner />
@@ -239,110 +233,101 @@ export default function MyVotesPage() {
         ) : (
           <>
             <div className="space-y-4">
-              <AnimatePresence mode="wait">
-                {votes.map((vote, idx) => (
-                  <motion.div
-                    key={vote.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ delay: idx * 0.05 }}
-                    whileHover={{ scale: 1.01, y: -2 }}
-                    className="relative p-5 overflow-hidden transition-all border border-gray-800 group rounded-2xl bg-gradient-to-r from-gray-900 to-black hover:border-red-500/30 hover:shadow-xl hover:shadow-red-500/5"
-                  >
-                    <div className="absolute inset-0 transition-opacity duration-300 opacity-0 rounded-2xl group-hover:opacity-100">
-                      <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-red-500/5 to-red-600/5" />
-                    </div>
+              {votes.map((vote, idx) => (
+                <motion.div
+                  key={vote.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  whileHover={{ scale: 1.01, y: -2 }}
+                  className="relative p-5 overflow-hidden transition-all border border-gray-800 group rounded-2xl bg-gradient-to-r from-gray-900 to-black hover:border-red-500/30 hover:shadow-xl hover:shadow-red-500/5"
+                >
+                  <div className="absolute inset-0 transition-opacity duration-300 opacity-0 rounded-2xl group-hover:opacity-100">
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-red-500/5 to-red-600/5" />
+                  </div>
 
-                    <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                      {/* Left Section - Poll Info */}
-                      <div className="flex-1">
-                        <div className="flex flex-wrap items-center gap-2 mb-3">
-                          <span
-                            className={`px-2.5 py-1 text-xs font-medium rounded-full border ${getStatusColor(vote.poll?.isActive)}`}
-                          >
-                            {vote.poll?.isActive ? (
-                              <span className="flex items-center gap-1">
-                                <SparklesIcon className="w-3 h-3" />
-                                Active
-                              </span>
-                            ) : (
-                              "Ended"
-                            )}
-                          </span>
-                          <span className="px-2.5 py-1 text-xs font-medium text-gray-300 bg-gray-800 rounded-full border border-gray-700">
-                            {vote.poll?.category}
-                          </span>
-                          <span className="px-2.5 py-1 text-xs font-medium text-purple-300 bg-purple-500/10 rounded-full border border-purple-500/20">
-                            Verified Vote
-                          </span>
-                        </div>
-
-                        <h3 className="mb-2 text-lg font-semibold text-white transition-colors group-hover:text-red-400 line-clamp-1">
-                          {vote.poll?.title}
-                        </h3>
-
-                        <div className="flex flex-wrap items-center gap-4 mt-2 text-sm">
-                          <div className="flex items-center gap-1.5 text-green-400 bg-green-500/10 px-2 py-1 rounded-full">
-                            <CheckCircleIcon className="w-4 h-4" />
-                            <span className="font-medium">
-                              Voted: {vote.candidate?.name}
+                  <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    {/* Left Section - Poll Info */}
+                    <div className="flex-1">
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                        <span
+                          className={`px-2.5 py-1 text-xs font-medium rounded-full border ${getStatusColor(vote.poll?.isActive)}`}
+                        >
+                          {vote.poll?.isActive ? (
+                            <span className="flex items-center gap-1">
+                              <SparklesIcon className="w-3 h-3" />
+                              Active
                             </span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-gray-400">
-                            <CalendarIcon className="w-4 h-4" />
-                            <span>{formatDate(vote.votedAt)}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5 text-gray-500">
-                            <QrCodeIcon className="w-4 h-4" />
-                            <span className="font-mono text-xs">
-                              Receipt: {vote.voteReceipt?.slice(0, 16)}...
-                            </span>
-                          </div>
-                        </div>
+                          ) : (
+                            "Ended"
+                          )}
+                        </span>
+                        <span className="px-2.5 py-1 text-xs font-medium text-gray-300 bg-gray-800 rounded-full border border-gray-700">
+                          {vote.poll?.category}
+                        </span>
+                        <span className="px-2.5 py-1 text-xs font-medium text-purple-300 bg-purple-500/10 rounded-full border border-purple-500/20">
+                          Verified Vote
+                        </span>
                       </div>
 
-                      {/* Right Section - Actions */}
-                      <div className="flex items-center gap-3">
+                      <h3 className="mb-2 text-lg font-semibold text-white transition-colors group-hover:text-red-400 line-clamp-1">
+                        {vote.poll?.title}
+                      </h3>
+
+                      <div className="flex flex-wrap items-center gap-4 mt-2 text-sm">
+                        <div className="flex items-center gap-1.5 text-green-400 bg-green-500/10 px-2 py-1 rounded-full">
+                          <CheckCircleIcon className="w-4 h-4" />
+                          <span className="font-medium">
+                            Voted: {vote.candidate?.name}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-gray-400">
+                          <CalendarIcon className="w-4 h-4" />
+                          <span>{formatDate(vote.votedAt)}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-gray-500">
+                          <QrCodeIcon className="w-4 h-4" />
+                          <span className="font-mono text-xs">
+                            Receipt: {vote.voteReceipt?.slice(0, 16)}...
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Section - Actions */}
+                    <div className="flex items-center gap-3">
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => handleViewReceipt(vote.id)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-300 transition-all bg-gray-800 rounded-xl hover:bg-gray-700 hover:text-white group/btn"
+                      >
+                        <DocumentTextIcon className="w-4 h-4 transition-transform group-hover/btn:scale-110" />
+                        Receipt
+                      </motion.button>
+                      {vote.poll?.isActive && (
                         <motion.button
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          onClick={() => handleViewReceipt(vote.id)}
-                          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-300 transition-all bg-gray-800 rounded-xl hover:bg-gray-700 hover:text-white group/btn"
+                          onClick={() => router.push(`/polls/${vote.poll?.id}`)}
+                          className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white transition-all rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:shadow-lg hover:shadow-red-500/25 group/btn"
                         >
-                          <DocumentTextIcon className="w-4 h-4 transition-transform group-hover/btn:scale-110" />
-                          Receipt
+                          <span>View Poll</span>
+                          <ArrowTopRightOnSquareIcon className="w-4 h-4 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
                         </motion.button>
-                        {vote.poll?.isActive && (
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() =>
-                              router.push(`/polls/${vote.poll?.id}`)
-                            }
-                            className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white transition-all rounded-xl bg-gradient-to-r from-red-500 to-red-600 hover:shadow-lg hover:shadow-red-500/25 group/btn"
-                          >
-                            <span>View Poll</span>
-                            <ArrowTopRightOnSquareIcon className="w-4 h-4 group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5 transition-transform" />
-                          </motion.button>
-                        )}
-                      </div>
+                      )}
                     </div>
+                  </div>
 
-                    {/* Progress bar for visual effect */}
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-red-500 to-red-600 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+                  {/* Progress bar for visual effect */}
+                  <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-red-500 to-red-600 scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500" />
+                </motion.div>
+              ))}
             </div>
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex items-center justify-center gap-2 mt-10"
-              >
+              <div className="flex items-center justify-center gap-2 mt-10">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -393,176 +378,162 @@ export default function MyVotesPage() {
                 >
                   <ChevronRightIcon className="w-5 h-5" />
                 </motion.button>
-              </motion.div>
+              </div>
             )}
           </>
         )}
       </div>
 
       {/* Receipt Modal */}
-      <AnimatePresence>
-        {showReceiptModal && selectedVote && (
+      {showReceiptModal && selectedVote && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+          onClick={() => setShowReceiptModal(false)}
+        >
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
-            onClick={() => setShowReceiptModal(false)}
+            initial={{ scale: 0.9, opacity: 0, y: 50 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 50 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="relative w-full max-w-lg overflow-hidden border shadow-2xl bg-gradient-to-br from-gray-900 to-black border-green-500/30 rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
           >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 50 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 50 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className="relative w-full max-w-lg overflow-hidden border shadow-2xl bg-gradient-to-br from-gray-900 to-black border-green-500/30 rounded-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* Header */}
-              <div className="relative p-6 border-b border-green-500/20 bg-gradient-to-r from-green-500/10 to-transparent">
-                <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-green-500/10 blur-2xl" />
-                <div className="flex items-center justify-between">
-                  <div className="z-10 flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500">
-                      <DocumentTextIcon className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-bold text-white">
-                        Vote Receipt
-                      </h2>
-                      <p className="text-sm text-gray-400">
-                        Proof of your participation
-                      </p>
-                    </div>
+            {/* Header */}
+            <div className="relative p-6 border-b border-green-500/20 bg-gradient-to-r from-green-500/10 to-transparent">
+              <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-green-500/10 blur-2xl" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500">
+                    <DocumentTextIcon className="w-5 h-5 text-white" />
                   </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">
+                      Vote Receipt
+                    </h2>
+                    <p className="text-sm text-gray-400">
+                      Proof of your participation
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowReceiptModal(false)}
+                  className="text-gray-400 transition-colors hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Receipt ID with Copy */}
+              <div className="p-4 border border-gray-700 rounded-xl bg-gradient-to-r from-gray-800/50 to-gray-800/30">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-semibold tracking-wider text-gray-400 uppercase">
+                    Receipt ID
+                  </p>
                   <button
-                    onClick={() => setShowReceiptModal(false)}
-                    className="z-20 text-gray-400 transition-colors cursor-pointer hover:text-white"
+                    onClick={() => copyReceiptId(selectedVote.voteReceipt)}
+                    className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 transition-colors rounded-lg hover:bg-gray-700"
                   >
-                    ✕
+                    {copied ? (
+                      <CheckCircleIcon className="w-3 h-3 text-green-400" />
+                    ) : (
+                      <DocumentDuplicateIcon className="w-3 h-3" />
+                    )}
+                    {copied ? "Copied!" : "Copy"}
                   </button>
                 </div>
+                <p className="font-mono text-sm text-white break-all">
+                  {selectedVote.voteReceipt}
+                </p>
               </div>
 
-              <div className="p-6 space-y-4">
-                {/* Receipt ID with Copy */}
-                {/* <div className="p-4 border border-gray-700 rounded-xl bg-gradient-to-r from-gray-800/50 to-gray-800/30">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-semibold tracking-wider text-gray-400 uppercase">
-                      Receipt ID
-                    </p>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => copyReceiptId(selectedVote.voteReceipt)}
-                      className="flex items-center gap-1 px-2 py-1 text-xs text-gray-400 transition-colors rounded-lg hover:bg-gray-700"
-                    >
-                      {copied ? (
-                        <CheckCircleIcon className="w-3 h-3 text-green-400" />
-                      ) : (
-                        <DocumentDuplicateIcon className="w-3 h-3" />
-                      )}
-                      {copied ? "Copied!" : "Copy"}
-                    </motion.button>
-                  </div>
-                  <p className="font-mono text-sm text-white break-all">
-                    {selectedVote.voteReceipt}
-                  </p>
-                </div> */}
-
-                {/* Poll Info */}
-                <div className="p-4 border border-gray-700 rounded-xl bg-gray-800/30">
-                  <p className="mb-2 text-xs font-semibold tracking-wider text-gray-400 uppercase">
-                    Poll Details
-                  </p>
-                  <p className="font-semibold text-white">
-                    {selectedVote.poll?.title}
-                  </p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <TagIcon className="w-3 h-3 text-gray-500" />
-                    <span className="text-sm text-gray-400">
-                      {selectedVote.poll?.category}
-                    </span>
-                    <span
-                      className={`ml-2 px-2 py-0.5 text-xs rounded-full ${getStatusColor(selectedVote.poll?.isActive)}`}
-                    >
-                      {selectedVote.poll?.isActive ? "Active" : "Ended"}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Candidate Info */}
-                <div className="p-4 border rounded-xl bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/20">
-                  <p className="mb-2 text-xs font-semibold tracking-wider text-green-400 uppercase">
-                    Your Vote
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <CheckCircleIcon className="w-5 h-5 text-green-400" />
-                    <span className="text-lg font-semibold text-white">
-                      {selectedVote.candidate?.name}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Vote Date */}
-                <div className="p-4 border border-gray-700 rounded-xl bg-gray-800/30">
-                  <p className="mb-2 text-xs font-semibold tracking-wider text-gray-400 uppercase">
-                    Vote Date
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <CalendarIcon className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm text-white">
-                      {formatDate(selectedVote.votedAt)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Voter Info */}
-                <div className="p-4 border border-gray-700 rounded-xl bg-gray-800/30">
-                  <p className="mb-2 text-xs font-semibold tracking-wider text-gray-400 uppercase">
-                    Voter Information
-                  </p>
-                  <p className="text-sm font-medium text-white">{user?.name}</p>
-                  <p className="text-sm text-gray-400">{user?.email}</p>
-                  <div className="flex items-center gap-1 mt-2">
-                    <ShieldCheckIcon className="w-3 h-3 text-green-400" />
-                    <span className="text-xs text-green-400">
-                      Verified Voter
-                    </span>
-                  </div>
-                </div>
-
-                {/* Verification Badge */}
-                <div className="flex items-center justify-center gap-2 p-3 border rounded-xl bg-green-500/5 border-green-500/20">
-                  <ShieldCheckIcon className="w-4 h-4 text-green-400" />
-                  <p className="text-xs text-green-400">
-                    This is an official voting receipt. Keep it for your
-                    records.
-                  </p>
+              {/* Poll Info */}
+              <div className="p-4 border border-gray-700 rounded-xl bg-gray-800/30">
+                <p className="mb-2 text-xs font-semibold tracking-wider text-gray-400 uppercase">
+                  Poll Details
+                </p>
+                <p className="font-semibold text-white">
+                  {selectedVote.poll?.title}
+                </p>
+                <div className="flex items-center gap-2 mt-2">
+                  <TagIcon className="w-3 h-3 text-gray-500" />
+                  <span className="text-sm text-gray-400">
+                    {selectedVote.poll?.category}
+                  </span>
+                  <span
+                    className={`ml-2 px-2 py-0.5 text-xs rounded-full ${getStatusColor(selectedVote.poll?.isActive)}`}
+                  >
+                    {selectedVote.poll?.isActive ? "Active" : "Ended"}
+                  </span>
                 </div>
               </div>
 
-              <div className="flex gap-3 p-6 pt-0">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setShowReceiptModal(false)}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-300 transition-all rounded-xl bg-gray-800 hover:bg-gray-700"
-                >
-                  Close
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => copyReceiptId(selectedVote.voteReceipt)}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium text-white transition-all rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 hover:shadow-lg hover:shadow-green-500/25"
-                >
-                  {copied ? "Copied!" : "Copy Receipt"}
-                </motion.button>
+              {/* Candidate Info */}
+              <div className="p-4 border rounded-xl bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/20">
+                <p className="mb-2 text-xs font-semibold tracking-wider text-green-400 uppercase">
+                  Your Vote
+                </p>
+                <div className="flex items-center gap-2">
+                  <CheckCircleIcon className="w-5 h-5 text-green-400" />
+                  <span className="text-lg font-semibold text-white">
+                    {selectedVote.candidate?.name}
+                  </span>
+                </div>
               </div>
-            </motion.div>
+
+              {/* Vote Date */}
+              <div className="p-4 border border-gray-700 rounded-xl bg-gray-800/30">
+                <p className="mb-2 text-xs font-semibold tracking-wider text-gray-400 uppercase">
+                  Vote Date
+                </p>
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="w-4 h-4 text-gray-500" />
+                  <span className="text-sm text-white">
+                    {formatDate(selectedVote.votedAt)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Voter Info */}
+              <div className="p-4 border border-gray-700 rounded-xl bg-gray-800/30">
+                <p className="mb-2 text-xs font-semibold tracking-wider text-gray-400 uppercase">
+                  Voter Information
+                </p>
+                <p className="text-sm font-medium text-white">{user?.name}</p>
+                <p className="text-sm text-gray-400">{user?.email}</p>
+                <div className="flex items-center gap-1 mt-2">
+                  <ShieldCheckIcon className="w-3 h-3 text-green-400" />
+                  <span className="text-xs text-green-400">Verified Voter</span>
+                </div>
+              </div>
+
+              {/* Verification Badge */}
+              <div className="flex items-center justify-center gap-2 p-3 border rounded-xl bg-green-500/5 border-green-500/20">
+                <ShieldCheckIcon className="w-4 h-4 text-green-400" />
+                <p className="text-xs text-green-400">
+                  This is an official voting receipt. Keep it for your records.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 p-6 pt-0">
+              <button
+                onClick={() => setShowReceiptModal(false)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-300 transition-all rounded-xl bg-gray-800 hover:bg-gray-700"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => copyReceiptId(selectedVote.voteReceipt)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white transition-all rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 hover:shadow-lg hover:shadow-green-500/25"
+              >
+                {copied ? "Copied!" : "Copy Receipt"}
+              </button>
+            </div>
           </motion.div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
     </div>
   );
 }

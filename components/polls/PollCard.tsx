@@ -866,7 +866,7 @@ function PollCardComponent({ poll, onVoteSuccess }: PollCardProps) {
         const result = await dispatch(
           castVote({ pollId: poll._id, candidateId }),
         ).unwrap();
-        console.log("Vote result:", result);
+        // console.log("Vote result:", result);
 
         setLocalVoted(true);
         setLocalVotedCandidateId(candidateId);

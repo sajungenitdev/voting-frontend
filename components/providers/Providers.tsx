@@ -18,14 +18,14 @@ function SessionRestorer({ children }: { children: React.ReactNode }) {
     // Listen for storage events (when localStorage changes in another tab)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "accessToken" || e.key === "user") {
-        console.log("Storage changed, restoring session...");
+        // console.log("Storage changed, restoring session...");
         dispatch(restoreSession());
       }
     };
 
     // Listen for custom auth events
     const handleAuthUpdate = () => {
-      console.log("Auth update event received, restoring session...");
+      // console.log("Auth update event received, restoring session...");
       dispatch(restoreSession());
     };
 

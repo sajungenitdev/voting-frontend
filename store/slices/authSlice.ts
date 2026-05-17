@@ -267,7 +267,7 @@ export const logout = createAsyncThunk("auth/logout", async () => {
       try {
         await api.post("/auth/logout");
       } catch (apiError) {
-        console.log("Logout API call failed, continuing with local cleanup");
+        // console.log("Logout API call failed, continuing with local cleanup");
       }
     }
   } catch (error) {
@@ -308,8 +308,8 @@ const authSlice = createSlice({
       const token = localStorage.getItem("accessToken");
       const userStr = localStorage.getItem("user");
 
-      console.log("Restoring session - Token exists:", !!token);
-      console.log("Restoring session - User exists:", !!userStr);
+      // // console.log("Restoring session - Token exists:", !!token);
+      // // console.log("Restoring session - User exists:", !!userStr);
 
       if (
         token &&
@@ -325,9 +325,9 @@ const authSlice = createSlice({
           state.user = normalizedUser;
           state.isAuthenticated = true;
           state.isLoggingIn = false;
-          console.log("Session restored successfully:", normalizedUser?.name);
+          // console.log("Session restored successfully:", normalizedUser?.name);
         } catch (e) {
-          console.error("Failed to restore session:", e);
+          // console.error("Failed to restore session:", e);
           state.user = null;
           state.token = null;
           state.isAuthenticated = false;
@@ -350,7 +350,7 @@ const authSlice = createSlice({
       state.isLoggingIn = false;
       localStorage.setItem("accessToken", token);
       localStorage.setItem("user", JSON.stringify(normalizedUser));
-      console.log("Session set manually:", normalizedUser);
+      // // console.log("Session set manually:", normalizedUser);
     },
     setLoggingIn: (state, action: PayloadAction<boolean>) => {
       state.isLoggingIn = action.payload;

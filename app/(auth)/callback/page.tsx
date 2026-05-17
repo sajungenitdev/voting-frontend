@@ -18,11 +18,11 @@ function CallbackContent() {
     const refreshToken = searchParams.get("refreshToken");
     const error = searchParams.get("error");
 
-    console.log("Callback received:", {
-      token: !!token,
-      refreshToken: !!refreshToken,
-      error,
-    });
+    // console.log("Callback received:", {
+    //   token: !!token,
+    //   refreshToken: !!refreshToken,
+    //   error,
+    // });
 
     let timeoutId: NodeJS.Timeout;
 
