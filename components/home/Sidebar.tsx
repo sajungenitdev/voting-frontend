@@ -42,13 +42,14 @@ interface SidebarProps {
   topPolls?: any[];
 }
 
+// ✅ FIXED: Make isActive optional to match API response
 interface Category {
   _id: string;
   name: string;
   displayName: string;
   icon?: string;
   description?: string;
-  isActive: boolean;
+  isActive?: boolean; // Changed from required to optional
 }
 
 export default function Sidebar({
@@ -98,6 +99,7 @@ export default function Sidebar({
       try {
         const response = await categoryAPI.getAll();
         if (response.success && response.data?.categories) {
+          // ✅ Safe filtering with optional isActive
           setDynamicCategories(
             response.data.categories.filter((cat) => cat.isActive !== false),
           );
